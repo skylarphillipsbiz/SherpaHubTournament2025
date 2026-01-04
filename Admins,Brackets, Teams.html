@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Admin · Teams, Seeds & Submissions</title>
+<style>
+  :root{
+    --bg:#000; --panel:#0f0f0f; --panel2:#0b0b0b; --text:#f2f2f2; --muted:#9aa3af; --border:#1a1a1a; 
+    --ok:#22c55e; --warn:#f59e0b; --err:#ef4444;
+    --green:#30f470;
+    --edge:#1a1f22; --edge2:#22282d;
+    --card:#101213; --chip:#121517;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:auto;padding:24px 14px 60px;display:grid;gap:14px}
+  header{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  h1{margin:0;font-size:clamp(22px,3vw,28px)}
+  .card{background:linear-gradient(180deg,#121212,#0f0f0f);border:1px solid var(--border);border-radius:14px;padding:12px}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  input,select,textarea{background:#0d0d0d;color:#fff;border:1px solid #1a1a1a;border-radius:10px;padding:8px 10px}
+  input:focus,select:focus,textarea:focus,button:focus{outline:2px solid var(--green);outline-offset:1px;position:relative;z-index:3}
+  button{background:#1b1b1b;border:1px solid #2a2a2a;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+  button.primary{background:var(--ok);color:#000;border-color:#16a34a}
+  button.warn{background:var(--warn);color:#000;border-color:#d97706}
+  button.danger{background:var(--err);color:#000;border-color:#dc2626}
+  button[disabled]{opacity:.5;cursor:not-allowed}
+  .pill{padding:6px 10px;border-radius:999px;border:1px solid #222;background:#0e0e0e;font-size:12px;color:#9aa3af}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#0e0e0e;cursor:pointer;font-weight:800}
+  .tab[aria-selected="true"]{outline:2px solid rgba(48,244,112,.35);position:relative;z-index:2}
+  .hint{font-size:12px;color:#9aa3af}
+  .tgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .trow{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;background:#0b0b0b;border:1px solid var(--border);border-radius:12px;padding:10px}
+  .thumb{width:56px;height:56px;border-radius:10px;object-fit:cover;background:#111}
+  .meta{display:grid;gap:4px}
+  .dim{color:#9aa3af;font-size:12px}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+  .panel{max-width:880px;width:100%;background:#0f0f0f;border:1px solid #1a1a1a;border-radius:14px;padding:14px;display:grid;gap:10px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:720px){ .cols{grid-template-columns:1fr} }
+  .picker{display:grid;grid-template-columns:1fr;gap:6px;max-height:320px;overflow:auto;border:1px solid #222;border-radius:10px;padding:8px;background:#0b0b0b;position:relative;z-index:1}
+  .pickrow{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:6px;border-bottom:1px solid #111}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{display:flex;gap:6px;align-items:center;border:1px solid #222;padding:4px 8px;border-radius:999px;background:#0b0b0b}
+  .chip button{padding:2px 6px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:900px){ .two{grid-template-columns:1fr} }
+  .list{background:#0b0b0b;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .list h3{margin:0;padding:10px;border-bottom:1px solid #1a1a1a;font-size:14px}
+  .list .body{padding:10px}
+  .teams-list{display:grid;gap:6px;max-height:360px;overflow:auto}
+  .team-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid #1a1a1a;border-radius:10px;background:#101010}
+  .seeds{display:grid;gap:6px;max-height:360px;overflow:auto}
+  .seed-row{display:grid;grid-template-columns:42px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border:1px solid #1a1a1a;border-radius:10px;background:#101010}
+  .seed-actions{display:flex;gap:6px}
+  .mini{padding:6px 8px;font-size:12px;border-radius:8px}
+  .sgrid{display:grid;gap:10px}
+  .srow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;border:1px solid #1f1f1f;background:#0b0b0b;border-radius:12px;padding:10px}
+  .smeta{display:grid;gap:6px}
+  .actions{display:flex;gap:8px;align-items:center}
+  .winname{color:var(--ok);font-weight:800}
+  .vs{opacity:.85;letter-spacing:.04em;margin:0 .4ch}
+  .editor{display:none;margin:10px 0 12px;border:1px solid var(--edge2);border-radius:12px;background:#0e0f10;padding:10px}
+  .editor .row{display:flex;align-items:center;gap:10px;margin:6px 0}
+  .editor .label{font-weight:800;font-size:12px;color:#cbd5e1}
+  .editor input[type="text"]{width:140px}
+  .toggle{display:inline-flex;align-items:center;gap:8px}
+  .toggle input{accent-color:#30f470}
+
+  
+.round { border:1px dashed #23292e; border-radius:10px; padding:8px }
+.round h4 { margin:0 0 6px; font-size:12px; color:#9aa3af; text-transform:uppercase; letter-spacing:.04em }
+
+.match-row{
+  display:flex; align-items:center; gap:10px;
+  border:1px solid #1b2025; border-radius:10px;
+  padding:8px 10px; background:#0e1012; font-size:13px;
+}
+.match-row .side{display:flex; align-items:center; gap:6px}
+.match-row .vs{opacity:.7}
+.match-row .win{color:#22c55e; font-weight:800}
+.match-row .score{color:#cbd5e1; opacity:.85; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px}
+.match-row .meta{margin-left:auto; color:#64748b; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px}
+.match-row.clickable{cursor:pointer}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Admin · Teams, Seeds & Submissions</h1>
+    <div class="pill" id="who">Signed out</div>
+  </header>
+
+  <div class="card bar">
+    <input id="email" type="email" placeholder="Email" autocomplete="username">
+    <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" class="primary">Sign In</button>
+    <button id="logoutBtn">Sign Out</button>
+    <span id="authMsg" class="pill" style="border:none;background:transparent"></span>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Admin sections">
+    <button id="tabTeams"      class="tab" role="tab" aria-selected="true">Teams</button>
+    <button id="tabBracket"    class="tab" role="tab" aria-selected="false">Bracket</button>
+    <button id="tabSubs"       class="tab" role="tab" aria-selected="false">Submissions</button>
+    <button id="tabTournament" class="tab" role="tab" aria-selected="false">Tournament</button>
+  </div>
+
+  
+  <section id="teamsSec" class="card" role="tabpanel" aria-labelledby="tabTeams">
+    <div class="bar" style="justify-content:space-between">
+      <div class="bar">
+        <button id="t_new" class="primary">+ New team</button>
+        <button id="t_refresh">Refresh</button>
+      </div>
+      <div class="bar">
+        <label class="pill">Sort</label>
+        <select id="t_sort">
+          <option value="name">Name (A–Z)</option>
+          <option value="abbr">Abbreviation (A–Z)</option>
+          <option value="created">Newest first</option>
+        </select>
+      </div>
+    </div>
+    <div id="t_grid" class="tgrid" style="margin-top:10px"></div>
+  </section>
+
+  
+  <section id="bracketSec" class="card" role="tabpanel" aria-labelledby="tabBracket" hidden>
+    <div class="two">
+      <div class="list">
+        <h3>Available Teams</h3>
+        <div class="body">
+          <div class="bar" style="justify-content:space-between;margin-bottom:8px">
+            <input id="br_search" placeholder="Search teams…" style="flex:1;min-width:180px">
+            <button id="br_add_selected" class="mini">Add →</button>
+          </div>
+          <div id="br_teams" class="teams-list"></div>
+        </div>
+      </div>
+      <div class="list">
+        <h3>Seeds (ordered)</h3>
+        <div class="body">
+          <div class="bar" style="margin-bottom:8px; flex-wrap:wrap">
+            <button id="br_purge_results" class="mini danger" title="Delete ALL recorded match results">Purge Results</button>
+            <button id="br_save" class="mini primary" style="margin-left:auto">Save Seeds</button>
+          </div>
+
+          <div id="br_seeds" class="seeds"></div>
+          <div class="hint" id="br_msg" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="list" style="margin-top:14px">
+      <h3 id="bv_title">Bracket View (barebones)</h3>
+      <div class="body">
+        <div class="toggle" style="margin-bottom:6px">
+          <label class="pill">Manual Progress:</label>
+          <label style="display:flex;align-items:center;gap:6px">
+            <input id="manualToggle" type="checkbox">
+            <span id="manualHint" class="hint">Click any match row to edit its result (when both sides are set).</span>
+          </label>
+        </div>
+
+        <div id="matchEditor" class="editor" aria-hidden="true">
+          <div style="font-weight:800;margin-bottom:6px" id="editTitle">Edit Match</div>
+          <div class="row">
+            <label class="label">Winner</label>
+            <label style="display:flex;align-items:center;gap:6px"><input type="radio" name="winPick" id="pickA"> <span id="pickALabel">Team A</span></label>
+            <label style="display:flex;align-items:center;gap:6px"><input type="radio" name="winPick" id="pickB"> <span id="pickBLabel">Team B</span></label>
+          </div>
+          <div class="row">
+            <label class="label" for="scoreInp">Score</label>
+            <input id="scoreInp" type="text" placeholder="e.g., 2-1">
+          </div>
+          <div class="row">
+            <button id="saveEdit" class="primary mini">Save</button>
+            <button id="clearEdit" class="mini warn">Clear</button>
+            <button id="closeEdit" class="mini">Close</button>
+          </div>
+          <div id="editMsg" class="hint"></div>
+        </div>
+
+        <div class="round-list" id="wbList"></div>
+        <div class="round-list" id="lbList" style="margin-top:12px"></div>
+        <div class="round-list" id="gfList" style="margin-top:12px"></div>
+
+        <div class="hint" id="bv_msg" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+  
+  <section id="subsSec" class="card" role="tabpanel" aria-labelledby="tabSubs" hidden>
+    <div class="bar" style="justify-content:space-between">
+      <strong>Captain Submissions</strong>
+      <div class="bar">
+        <label class="pill">Filter</label>
+        <select id="sub_filter">
+          <option value="pending">Pending</option>
+          <option value="all">All</option>
+        </select>
+      </div>
+    </div>
+    <div id="subsList" class="sgrid" style="margin-top:10px"></div>
+    <div class="hint" id="subsMsg" style="margin-top:6px"></div>
+
+    <div class="list" style="margin-top:14px">
+      <h3>Preview (if this submission is approved)</h3>
+      <div class="body">
+        <div class="hint" id="subsPrevMsg" style="margin-bottom:8px">Select a submission and click “Preview”.</div>
+        <div class="round-list" id="subsPrevWB"></div>
+        <div class="round-list" id="subsPrevLB" style="margin-top:12px"></div>
+        <div class="round-list" id="subsPrevGF" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section id="tournSec" class="card" role="tabpanel" aria-labelledby="tabTournament" hidden>
+    <div class="bar" style="justify-content:space-between">
+      <div class="bar">
+        <strong>Tournament Status</strong>
+        <span id="tournStatus" class="pill">Draft</span>
+        <span id="tournInfo" class="pill" style="display:none"></span>
+      </div>
+      <div class="bar">
+        <label class="toggle">
+          <span class="pill">Override seed lock</span>
+          <input id="toggleOverride" type="checkbox">
+        </label>
+        <button id="btnInitiate" class="primary">Initiate Tournament</button>
+        <button id="btnDeleteInstance" class="danger" disabled>Delete Tournament Instance</button>
+      </div>
+    </div>
+    <div class="hint" id="tournMsg" style="margin-top:6px"></div>
+  </section>
+</div>
+
+
+<div id="t_modal" class="modal" aria-hidden="true">
+  <div class="panel" role="document">
+    <div class="bar" style="justify-content:space-between">
+      <strong id="t_title">New Team</strong>
+      <button id="t_close">Close</button>
+    </div>
+    <div class="cols">
+      <div class="card">
+        <div class="bar"><label style="min-width:120px">Name</label><input id="t_name" maxlength="60"></div>
+        <div class="bar"><label style="min-width:120px">Abbreviation</label><input id="t_abbr" maxlength="8" placeholder="e.g., WW"></div>
+        <div class="bar"><label style="min-width:120px">Active</label>
+          <select id="t_active"><option value="true">true</option><option value="false">false</option></select>
+        </div>
+        <div class="bar" style="gap:8px;align-items:center;flex-wrap:wrap">
+          <label style="min-width:120px">Logo</label>
+          <input id="t_logo_file" type="file" accept="image/*">
+          <button id="t_logo_upload" class="mini">Upload Logo</button>
+          <button id="t_logo_delete" class="mini danger">Delete Logo</button>
+        </div>
+        <img id="t_logo_prev" class="thumb" alt="logo" style="width:96px;height:96px;border-radius:12px;border:1px solid #222">
+        <div class="hint">Tip: for NEW teams, save first, then use “Upload Logo”.</div>
+      </div>
+      <div class="card">
+        <div class="bar" style="justify-content:space-between; width:100%"><strong>Members (from Players in hub)</strong><input id="t_player_search" placeholder="Search players…" style="min-width:180px"></div>
+        <div class="chips" id="t_selected_chips"></div>
+        <div id="t_picker" class="picker" style="margin-top:8px"></div>
+        <div class="bar" style="margin-top:6px">
+          <label>Captain (required):</label>
+          <select id="t_captain_sel"></select>
+        </div>
+        <div class="hint">Captain email auto: <code>username@sherpahubtournament.com</code></div>
+      </div>
+    </div>
+    <div class="bar" style="justify-content:space-between">
+      <span id="t_msg" class="hint"></span>
+      <div class="bar">
+        <button id="t_delete" class="danger" style="display:none">Delete</button>
+        <button id="t_save" class="primary">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, orderBy, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, setDoc, onSnapshot, deleteField, where, limit, getDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-storage.js";
+
+const HUB_CONFIG = { apiKey:"AIzaSyDZPD8nUaLXmKbosAVnzs3btqf-8KDGTas", authDomain:"eft-sherpa-hub.firebaseapp.com", projectId:"eft-sherpa-hub", storageBucket:"eft-sherpa-hub.appspot.com", messagingSenderId:"831895286596", appId:"1:831895286596:web:f381dc5e199c0e27bd9d11" };
+const BRACKET_CONFIG = { apiKey:"AIzaSyDzpqLZLQf5zss4QQTREQcMAIUmdWJ1BBg", authDomain:"eft-sherpa-bracket-8f95c.firebaseapp.com", projectId:"eft-sherpa-bracket-8f95c", storageBucket:"eft-sherpa-bracket-8f95c.firebasestorage.app", messagingSenderId:"529705000630", appId:"1:529705000630:web:f8f627ca719d35ac8b9017" };
+const BRACKET_DOC_ID = "eft-sherpa-hub";
+const BYE="__BYE__";
+const ADMIN_EMAILS = new Set(["sphillips78004@gmail.com"]);
+const MAX_MEMBERS=5;
+
+const hubApp = getApps().find(a=>a.name==="hub") ?? initializeApp(HUB_CONFIG, "hub");
+const hubAuth = getAuth(hubApp);
+const hubDb   = getFirestore(hubApp);
+
+const bracketApp = getApps().find(a=>a.name==="bracket") ?? initializeApp(BRACKET_CONFIG, "bracket");
+const brAuth = getAuth(bracketApp);
+const brDb   = getFirestore(bracketApp);
+const brSt   = getStorage(bracketApp);
+
+await Promise.allSettled([ setPersistence(hubAuth, browserLocalPersistence), setPersistence(brAuth, browserLocalPersistence) ]);
+
+const who=$('who'), email=$('email'), pass=$('pass'), loginBtn=$('loginBtn'), logoutBtn=$('logoutBtn'), authMsg=$('authMsg');
+const tabTeams=$('tabTeams'), tabBracket=$('tabBracket'), tabSubs=$('tabSubs'), tabTournament=$('tabTournament');
+const teamsSec=$('teamsSec'), bracketSec=$('bracketSec'), subsSec=$('subsSec'), tournSec=$('tournSec');
+
+function $(id){ return document.getElementById(id); }
+function isAdmin(){ const e=(brAuth.currentUser?.email||"").toLowerCase(); return ADMIN_EMAILS.has(e); }
+function requireAdmin(){ if(!isAdmin()) throw new Error('Admin sign-in required.'); }
+
+loginBtn.onclick=async()=>{ authMsg.textContent=''; try{ const e=email.value.trim(), p=pass.value; if(!e||!p) throw new Error("Enter email & password."); await signInWithEmailAndPassword(brAuth,e,p); await signInWithEmailAndPassword(hubAuth,e,p);}catch(err){ authMsg.textContent=err.message||'Sign-in failed'; } };
+logoutBtn.onclick=async()=>{ await Promise.allSettled([ signOut(brAuth), signOut(hubAuth) ]); };
+onAuthStateChanged(brAuth, u=>{ who.textContent = u ? `Signed in: ${u.email}` : 'Signed out'; });
+onAuthStateChanged(hubAuth, async ()=>{ try{ await loadPlayers(); renderPicker(); }catch{} });
+
+function showTab(which){
+  const map = { teams:[teamsSec,tabTeams], bracket:[bracketSec,tabBracket], subs:[subsSec,tabSubs], tournament:[tournSec,tabTournament] };
+  for(const [name,[sec,btn]] of Object.entries(map)){ const sel=(name===which); btn.setAttribute('aria-selected', String(sel)); sec.hidden=!sel; }
+}
+
+tabTeams.onclick=()=>showTab('teams');
+tabBracket.onclick=()=>showTab('bracket');
+tabSubs.onclick=()=>showTab('subs');
+tabTournament.onclick=()=>showTab('tournament');
+
+
+function getRoleColor(role){
+  const key=String(role||'').toLowerCase();
+  const map={ sherpa:'#30f470', emissary:'#7b5bca', helpful:'#ff7a1c', moderator:'#ff2b2b', staff:'#22d3ee', ticket:'#e6ac79' };
+  return map[key] || '#cbd5e1';
+}
+const SKILL_FIELDS=['skill','skillLevel','skill_level','Skill','SkillLevel','mmr','MMR','elo','ELO','rank','Rank','tier','Tier','rating','Rating','sr','SR','level','Level'];
+function getSkillLabel(d){
+  if(!d||typeof d!=='object') return '—';
+  for(const k of SKILL_FIELDS){ const v=d[k]; if(v!=null&&String(v).trim()!=='') return String(v); }
+  const nested=d.meta||d.stats||d.profile||null;
+  if(nested&&typeof nested==='object'){ for(const k of SKILL_FIELDS){ const v=nested[k]; if(v!=null&&String(v).trim()!=='') return String(v); } }
+  return '—';
+}
+
+
+let HUB_PLAYERS=[]; let TEAMS=[];
+async function loadPlayers(){ const snap=await getDocs(query(collection(hubDb,'signups'), orderBy('createdAt','desc'))); HUB_PLAYERS=[]; snap.forEach(s=> HUB_PLAYERS.push({id:s.id, data:s.data()})); }
+
+const t_grid=$('t_grid'), t_refresh=$('t_refresh'), t_new=$('t_new'), t_sort=$('t_sort');
+const tModal=$('t_modal'), t_title=$('t_title'), t_close=$('t_close');
+const t_name=$('t_name'), t_abbr=$('t_abbr'), t_active=$('t_active');
+const t_logoF=$('t_logo_file'), t_logoP=$('t_logo_prev'); const t_logo_upload=$('t_logo_upload'), t_logo_delete=$('t_logo_delete');
+const t_msg=$('t_msg'), t_del=$('t_delete'), t_save=$('t_save');
+const t_picker=$('t_picker'), t_search=$('t_player_search'), t_chips=$('t_selected_chips'), t_captSel=$('t_captain_sel');
+
+let CURR_TEAM=null, SELECTED=new Set();
+
+function usernameFromName(name){ const base=String(name||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,''); const clean=base.replace(/[^a-z0-9]+/g,''); return clean.slice(0,32)||'captain'; }
+function extFromType(t){ t=(t||'').toLowerCase(); if(t.includes('jpeg'))return'jpg'; if(t.includes('png'))return'png'; if(t.includes('webp'))return'webp'; if(t.includes('jpg'))return'jpg'; return 'webp'; }
+
+async function loadTeams(){
+  const snap=await getDocs(query(collection(brDb,'teams'), orderBy('name','asc')));
+  TEAMS=[]; snap.forEach(s=> TEAMS.push({id:s.id,data:s.data()}));
+  renderTeams(); renderBracketLists(); drawBracket();
+}
+t_refresh.onclick=()=>loadTeams();
+
+function renderTeams(){
+  let items=[...TEAMS];
+  const sort=t_sort.value;
+  if(sort==='name') items.sort((a,b)=> (a.data.name||'').localeCompare(b.data.name||'')); 
+  if(sort==='abbr') items.sort((a,b)=> (a.data.abbr||'').localeCompare(b.data.abbr||'')); 
+  if(sort==='created') items.sort((a,b)=> Number(b.data.createdAt?.seconds||0) - Number(a.data.createdAt?.seconds||0));
+  t_grid.innerHTML='';
+  const frag=document.createDocumentFragment();
+  items.forEach(({id,data})=>{
+    const row=document.createElement('div'); row.className='trow';
+    const img=new Image(); img.className='thumb'; img.src=data.logoUrl||''; img.alt='logo'; img.onerror=()=>{ img.src=''; img.style.background='#111'; };
+    const meta=document.createElement('div'); meta.className='meta';
+    const capName=data.captain?.displayName||'—';
+    meta.innerHTML=`<div><strong>${data.name||'—'}</strong> <span class="dim">${data.abbr?`(${data.abbr})`:''}</span></div>
+                    <div class="dim">Captain: ${capName} · ${(Array.isArray(data.members)?data.members.length:0)}/${MAX_MEMBERS} members</div>`;
+    const btn=document.createElement('button'); btn.textContent='Edit'; btn.onclick=()=>openTeam({id,data});
+    row.append(img,meta,btn); frag.appendChild(row);
+  });
+  t_grid.appendChild(frag);
+}
+
+function openTeam(rec){
+  CURR_TEAM=rec||null; const d=rec?.data||{};
+  t_title.textContent=rec?`Edit Team: ${d.name||rec.id}`:'New Team';
+  t_name.value=d.name||''; t_abbr.value=d.abbr||''; t_active.value=String(d.active??true);
+  t_logoF.value=''; t_logoP.src=d.logoUrl||''; t_msg.textContent=''; t_del.style.display=rec?'inline-block':'none';
+  SELECTED=new Set(Array.isArray(d.members)?d.members:[]);
+  renderSelectedChips(); renderPicker(); renderCaptainOptions(d.captain?.displayName||'');
+  tModal.style.display='flex'; tModal.setAttribute('aria-hidden','false');
+}
+function closeTeam(){ tModal.style.display='none'; tModal.setAttribute('aria-hidden','true'); }
+t_close.onclick=closeTeam; tModal.addEventListener('click',e=>{ if(e.target===tModal) closeTeam(); });
+
+function renderSelectedChips(){
+  t_chips.innerHTML=''; const sel=HUB_PLAYERS.filter(p=> SELECTED.has(p.id));
+  sel.forEach(p=>{
+    const d=p.data; const chip=document.createElement('div');
+    chip.className='chip';
+    chip.innerHTML=`<span style="color:${getRoleColor(d.role)};font-weight:700">${d.name||'—'}</span><span class="pill" style="margin-left:4px">Skill: ${getSkillLabel(d)}</span>`;
+    const x=document.createElement('button'); x.textContent='x'; x.onclick=()=>{ SELECTED.delete(p.id); renderPicker(); renderSelectedChips(); renderCaptainOptions(t_captSel.value); };
+    chip.appendChild(x); t_chips.appendChild(chip);
+  });
+}
+function assignedSetGlobal(){ const s=new Set(); TEAMS.forEach(t=> (t.data.members||[]).forEach(id=> s.add(id))); return s; }
+function renderPicker(){
+  const q = (t_search.value || '').toLowerCase();
+  const assigned = assignedSetGlobal();
+  const current = CURR_TEAM?.data?.members || [];
+
+  t_picker.innerHTML = '';
+  const players = HUB_PLAYERS.filter(p => {
+    // already on another team and not currently on this team
+    if (assigned.has(p.id) && !current.includes(p.id)) return false;
+    // already selected for this team
+    if (SELECTED.has(p.id)) return false;
+
+    const d = p.data;
+    const handle = String(d.discord_id || '');
+    return !q ||
+      String(d.name || '').toLowerCase().includes(q) ||
+      handle.toLowerCase().includes(q);
+  });
+
+  const frag = document.createDocumentFragment();
+  players.forEach(p => {
+    const d = p.data;
+    const row = document.createElement('div');
+    row.className = 'pickrow';
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+
+    const label = document.createElement('div');
+    label.innerHTML = `<strong style="color:${getRoleColor(d.role)}">${d.name || '—'}</strong> <span class="dim">${d.discord_id || ''}</span>`;
+
+    const skill = document.createElement('div');
+    skill.className = 'pill';
+    skill.textContent = `Skill: ${getSkillLabel(d)}`;
+
+    cb.onchange = () => {
+      if (cb.checked) {
+        if (SELECTED.size >= MAX_MEMBERS) {
+          cb.checked = false;
+          alert('Limit 5 members');
+          return;
+        }
+        SELECTED.add(p.id);
+        // re-render everything
+        renderPicker();
+        renderSelectedChips();
+        // 👇 THIS was missing — refresh captain list from current SELECTED
+        renderCaptainOptions(t_captSel.value);
+      }
+    };
+
+    row.append(cb, label, skill);
+    frag.appendChild(row);
+  });
+
+  t_picker.appendChild(frag);
+}
+
+function renderCaptainOptions(currentName){
+  t_captSel.innerHTML=''; const o0=document.createElement('option'); o0.value=''; o0.textContent='— select captain —'; t_captSel.appendChild(o0);
+  HUB_PLAYERS.filter(p=> SELECTED.has(p.id)).forEach(p=>{ const nm=p.data.name||p.id; const o=document.createElement('option'); o.value=nm; o.textContent=nm; if(currentName===nm) o.selected=true; t_captSel.appendChild(o); });
+}
+
+t_logo_upload.onclick=uploadLogo; t_logo_delete.onclick=deleteLogo; t_save.onclick=saveTeam; t_new.onclick=()=>openTeam(null);
+
+async function saveTeam(){
+  try{
+    requireAdmin();
+    t_msg.textContent='';
+    const name=t_name.value.trim(), abbr=t_abbr.value.trim(), active=(t_active.value==='true'), members=[...SELECTED];
+    if(!name){ t_msg.textContent='Team name is required.'; return; }
+    if(!members.length){ t_msg.textContent='Pick at least one member.'; return; }
+    const captainName=(t_captSel.value||'').trim(); if(!captainName){ t_msg.textContent='Captain is required.'; return; }
+    const captain={ displayName:captainName, email:`${usernameFromName(captainName)}@sherpahubtournament.com`, username:usernameFromName(captainName) };
+    const payload={ name, abbr, active, members, captain, captainEmail:captain.email, updatedAt:serverTimestamp(), updatedBy:brAuth.currentUser?.email||null };
+    if(CURR_TEAM){ await updateDoc(doc(brDb,'teams',CURR_TEAM.id),payload); CURR_TEAM.data={...CURR_TEAM.data,...payload}; t_msg.textContent='Saved.'; }
+    else{ const refNew=await addDoc(collection(brDb,'teams'),{ ...payload, createdAt:serverTimestamp() }); CURR_TEAM={id:refNew.id, data:{...payload}}; t_del.style.display='inline-block'; t_msg.textContent='Team created.'; }
+    await loadTeams(); renderTeams(); renderBracketLists();
+  }catch(err){ t_msg.textContent=err?.message||'Save failed.'; }
+}
+async function uploadLogo(){
+  try{
+    if(!brAuth.currentUser){ t_msg.textContent='Sign in first.'; return; }
+    if(!CURR_TEAM){ t_msg.textContent='Save the team first, then upload.'; return; }
+    const f=t_logoF.files?.[0]; if(!f){ t_msg.textContent='Choose an image file first.'; return; }
+    if(f.size>2*1024*1024){ t_msg.textContent='Max file size is 2MB.'; return; }
+    if(!/^image\//i.test(f.type)){ t_msg.textContent='File must be an image.'; return; }
+    const ext=extFromType(f.type); const path=`team-logos/${CURR_TEAM.id}/logo.${ext}`; const r=ref(brSt,path);
+    await uploadBytes(r,f,{contentType:f.type}); const url=await getDownloadURL(r);
+    await updateDoc(doc(brDb,'teams',CURR_TEAM.id),{ logoUrl:url, logoPath:path, updatedAt:serverTimestamp(), updatedBy:brAuth.currentUser?.email||null });
+    CURR_TEAM.data.logoUrl=url; CURR_TEAM.data.logoPath=path; t_logoP.src=url; t_msg.textContent='Logo uploaded.'; await loadTeams(); renderTeams();
+  }catch(err){ t_msg.textContent=err?.message||'Logo upload failed.'; }
+}
+async function deleteLogo(){
+  try{
+    requireAdmin();
+    if(!CURR_TEAM){ t_msg.textContent='Open a team first.'; return; }
+    const path=CURR_TEAM.data.logoPath; if(!path){ t_msg.textContent='No stored logo path.'; return; }
+    await deleteObject(ref(brSt,path));
+    await updateDoc(doc(brDb,'teams',CURR_TEAM.id),{ logoUrl:deleteField(), logoPath:deleteField(), updatedAt:serverTimestamp(), updatedBy:brAuth.currentUser?.email||null });
+    CURR_TEAM.data.logoUrl=null; CURR_TEAM.data.logoPath=null; t_logoP.src=''; t_msg.textContent='Logo deleted.'; await loadTeams(); renderTeams();
+  }catch(err){ t_msg.textContent=err?.message||'Logo delete failed.'; }
+}
+
+
+const brTeamsBox=$('br_teams'), brSeedsBox=$('br_seeds'), brSearch=$('br_search'), brMsg=$('br_msg');
+const btnSave=$('br_save'), btnPurgeResults=$('br_purge_results');
+const manualToggle=$('manualToggle');
+const wbList=$('wbList'), lbList=$('lbList'), gfList=$('gfList'), bvMsg=$('bv_msg');
+
+let SEEDS=[], RESULTS={}, META={ initiated:false, seedsLocked:false, instanceId:null, initiatedAt:null, initiatedBy:null, allowAdminOverride:false };
+
+function labelForTeamId(id){
+  if(id===BYE) return 'BYE (auto-advance)';
+  const t=TEAMS.find(x=>x.id===id)?.data;
+  return (t?.abbr||t?.name||id);
+}
+function setSeedEditingLocked(locked){
+  ['br_add_selected','br_save'].forEach(id=>{
+    const b=$(id); if(b) b.disabled = locked && !META.allowAdminOverride;
+  });
+}
+
+document.getElementById('br_add_selected').onclick=()=>{
+  brTeamsBox.querySelectorAll('input[type="checkbox"]:checked').forEach(ch=>{ const id=ch.getAttribute('data-id'); if(!SEEDS.includes(id)) SEEDS.push(id); });
+  renderBracketLists();
+};
+
+function renderBracketLists(){
+  const seeded=new Set(SEEDS.filter(x=>x!==BYE));
+  const q=(brSearch.value||'').toLowerCase();
+  brTeamsBox.innerHTML='';
+  const tf=document.createDocumentFragment();
+  TEAMS.filter(t=> !seeded.has(t.id))
+       .filter(t=>{ const hay=((t.data.abbr||'')+' '+(t.data.name||'')).toLowerCase(); return !q || hay.includes(q); })
+       .forEach(t=>{
+         const row=document.createElement('label'); row.className='team-item';
+         row.innerHTML=`<input type="checkbox" data-id="${t.id}"> <strong>${t.data.abbr||t.data.name||t.id}</strong> <span class="dim" style="margin-left:auto">${t.data.name||''}</span>`;
+         tf.appendChild(row);
+       });
+  brTeamsBox.appendChild(tf);
+
+  brSeedsBox.innerHTML='';
+  const sf=document.createDocumentFragment();
+  SEEDS.forEach((id,idx)=>{
+    const team=id===BYE?null:TEAMS.find(t=>t.id===id);
+    const label=labelForTeamId(id);
+    const row=document.createElement('div'); row.className='seed-row';
+    row.innerHTML=`
+      <div class="pill" style="text-align:center">${idx+1}</div>
+      <div><strong>${label}</strong>${id!==BYE && team?.data?.name?` <span class="dim">(${team.data.name})</span>`:''}</div>
+      <div class="seed-actions">
+        <button class="mini" data-act="up" data-idx="${idx}">↑</button>
+        <button class="mini" data-act="down" data-idx="${idx}">↓</button>
+        <button class="mini warn" data-act="remove" data-idx="${idx}">Remove</button>
+      </div>`;
+    sf.appendChild(row);
+  });
+  brSeedsBox.appendChild(sf);
+  setSeedEditingLocked(META.seedsLocked || hasAnyMatchResult());
+  drawBracket();
+}
+brSeedsBox.addEventListener('click',e=>{
+  const btn=e.target.closest('button'); if(!btn) return;
+  if(META.seedsLocked && !META.allowAdminOverride){ brMsg.textContent='Seeds are locked.'; setTimeout(()=> brMsg.textContent='',1200); return; }
+  const i=+btn.dataset.idx;
+  if(btn.dataset.act==='up'&&i>0){ [SEEDS[i-1],SEEDS[i]]=[SEEDS[i],SEEDS[i-1]]; }
+  if(btn.dataset.act==='down'&&i<SEEDS.length-1){ [SEEDS[i+1],SEEDS[i]]=[SEEDS[i],SEEDS[i+1]]; }
+  if(btn.dataset.act==='remove'){ SEEDS.splice(i,1); }
+  renderBracketLists();
+});
+btnPurgeResults.onclick = async () => {
+  try{
+    requireAdmin();
+    if(!confirm('Delete ALL recorded results?')) return;
+    brMsg.textContent='Purging results…';
+    await deleteDoc(doc(brDb,'results','main'));
+    RESULTS={};
+    drawBracket();
+    brMsg.textContent='All results deleted.';
+  }catch(e){ brMsg.textContent=e.message||'Purge failed.'; }
+};
+
+
+btnSave.onclick=async()=>{
+  if(META.seedsLocked && !META.allowAdminOverride){ brMsg.textContent='Seeds are locked.'; return; }
+  if(!isAdmin()){ brMsg.textContent='Admin sign-in required.'; return; }
+  brMsg.textContent='Saving…';
+  try{ await setDoc(doc(brDb,'seeds','main'), { teamIds:SEEDS, updatedAt:serverTimestamp(), updatedBy:brAuth.currentUser.email }, {merge:false}); brMsg.textContent='Saved.'; }
+  catch(e){ brMsg.textContent=e.message||'Save failed.'; }
+};
+
+
+function hasAnyMatchResult(){ return Object.keys(RESULTS||{}).some(k=>/^(wb|lb|gf):/.test(k)); }
+function parseScore(s){ if(!s) return null; const m=String(s).match(/^\s*(\d+)\s*[-:x]\s*(\d+)\s*$/i); return m?{w:+m[1],l:+m[2]}:null; }
+function getWinner(key, src){ return src?.[key]?.winner || null; }
+function getScore(key, src){ return src?.[key]?.score || ""; }
+
+function prepareSeedsForBracket(ids){
+  const real=(ids||[]).filter(x=>x && x!==BYE);
+  if(real.length===7) return [ real[0], BYE,  real[1], real[6],  real[2], real[5],  real[3], real[4] ];
+  const clean=(ids||[]).filter(Boolean); if(!clean.some(x=>x!==BYE)) return [];
+  const base=[...clean]; if(base.length%2) base.push(BYE);
+  let p=1; while(p<base.length)p<<=1; while(base.length<p) base.push(BYE);
+  return base;
+}
+function seedRankMap(){ const m=new Map(); let r=1; (SEEDS||[]).forEach(id=>{ if(id && id!==BYE && !m.has(id)) m.set(id,r++); }); return m; }
+
+
+function buildWBRounds(seedIds){
+  const r0=[], rounds=[];
+  for(let i=0;i<seedIds.length;i+=2) r0.push({key:`wb:r0:m${i/2}`, a:seedIds[i], b:seedIds[i+1]});
+  rounds.push(r0);
+  while(rounds[rounds.length-1].length>1){
+    const prev=rounds[rounds.length-1], cur=[];
+    for(let i=0;i<prev.length;i+=2) cur.push({key:`wb:r${rounds.length}:m${i/2}`, a:`W(${prev[i].key})`, b:`W(${prev[i+1].key})`});
+    rounds.push(cur);
+  }
+  return rounds;
+}
+function autoWBResults(wb){
+  const r={};
+  wb[0].forEach(m=>{
+    const a=m.a, b=m.b;
+    if(a===BYE && b && b!==BYE) r[m.key]={winner:b};
+    if(b===BYE && a && a!==BYE) r[m.key]={winner:a};
+    if(a===BYE && b===BYE)      r[m.key]={winner:BYE};
+  });
+  return r;
+}
+function winnerIdFromToken(tok, merged){
+  if(typeof tok!=='string') return null;
+  const m=tok.match(/^W\((.+)\)$/); if(!m) return null;
+  return getWinner(m[1], merged) || null;
+}
+
+
+function loserOfWB(key, wb, merged){
+  const k=key; const r = wb.flat().find(x=>x.key===k); if(!r) return null;
+  const a = r.a===BYE||r.a?.startsWith?.('W(') ? winnerIdFromToken(r.a, merged) : r.a;
+  const b = r.b===BYE||r.b?.startsWith?.('W(') ? winnerIdFromToken(r.b, merged) : r.b;
+  const w = getWinner(k, merged);
+  if(!w || !a || !b || a==='TBD'||b==='TBD'||a===BYE||b===BYE) return null;
+  return (w===a)? b : (w===b)? a : null;
+}
+function buildLBStructure(wb, merged){
+  const rnk = seedRankMap();
+
+  
+  const r0Matches = Array.isArray(wb?.[0]) ? wb[0] : [];
+  const nonByeR0  = r0Matches.filter(m => m.a !== BYE && m.b !== BYE);
+
+ 
+  const l0 = nonByeR0.map(m => loserOfWB(m.key, wb, merged)).filter(Boolean);
+
+  
+  let lbR0m0 = { key: 'lb:r0:m0', a: null, b: null }; 
+  let lbR0m1 = { key: 'lb:r0:m1', a: null, b: BYE  }; 
+
+  if (l0.length === 3){
+    
+    const sorted = l0.map(id => ({ id, rank: rnk.get(id) || 9999 }))
+                     .sort((x,y) => x.rank - y.rank);
+
+    const top  = sorted[0].id;               
+    const rest = [sorted[1].id, sorted[2].id];
+
+    lbR0m0.a = rest[0];
+    lbR0m0.b = rest[1];
+    lbR0m1.a = top;                          
+  }
+
+  const r0 = [ lbR0m0, lbR0m1 ];
+
+  
+  const r1 = [
+    { key:'lb:r1:m0', a:'W(lb:r0:m0)', b:'L(wb:r1:m0)' },
+    { key:'lb:r1:m1', a:'W(lb:r0:m1)', b:'L(wb:r1:m1)' },
+  ];
+  const r2 = [ { key:'lb:r2:m0', a:'W(lb:r1:m0)', b:'W(lb:r1:m1)' } ];
+  const r3 = [ { key:'lb:r3:m0', a:'W(lb:r2:m0)', b:'L(wb:r2:m0)' } ];
+
+  return [ r0, r1, r2, r3 ];
+}
+
+function autoLBResults(lb){
+  const r={};
+  
+  const m = lb[0][1];
+  if(m?.a && m?.b===BYE) r[m.key]={winner:m.a};
+  return r;
+}
+function tokenSideId(side, merged){
+  if(!side) return null;
+  if(side===BYE) return BYE;
+  if(typeof side==='string' && side.startsWith('W(')) return winnerIdFromToken(side, merged) || 'TBD';
+  if(typeof side==='string' && side.startsWith('L(')){
+    const ref=side.slice(2,-1); const w=getWinner(ref, merged); if(!w) return 'TBD';
+    const wb=ref.startsWith('wb:');
+    if(!wb) return 'TBD';
+    const allWb=buildWBRounds(prepareSeedsForBracket(SEEDS)); const found=allWb.flat().find(x=>x.key===ref);
+    if(!found) return 'TBD';
+    const a=found.a===BYE||found.a?.startsWith?.('W(')? winnerIdFromToken(found.a,merged) : found.a;
+    const b=found.b===BYE||found.b?.startsWith?.('W(')? winnerIdFromToken(found.b,merged) : found.b;
+    if(!a||!b||a==='TBD'||b==='TBD') return 'TBD';
+    return (w===a)? b : a;
+  }
+  return side;
+}
+
+
+function makeMatchRow({key,aId,bId,merged}){
+  const row = document.createElement('div');
+  row.className = 'match-row';
+  row.dataset.key = key;
+  row.dataset.aid = aId || '';
+  row.dataset.bid = bId || '';
+
+  const win = getWinner(key, merged);
+  const score = getScore(key, merged);
+  const ps = parseScore(score);
+
+  const aLabel = labelForTeamId(aId || 'TBD');
+  const bLabel = labelForTeamId(bId || 'TBD');
+
+  const editable = manualToggle.checked &&
+                   aId && bId && aId!=='TBD' && bId!=='TBD' &&
+                   aId !== BYE && bId !== BYE;
+
+  if (editable) row.classList.add('clickable');
+
+  
+  const aWin = win && win===aId ? `<span class="win">WIN</span>` : '';
+  const bWin = win && win===bId ? `<span class="win">WIN</span>` : '';
+
+  
+  const scoreHtml = ps ? `<span class="score">${ps.w}-${ps.l}</span>` : (score ? `<span class="score">${score}</span>` : '');
+
+  row.innerHTML = `
+    <span class="side"><strong>${aLabel}</strong> ${aWin}</span>
+    <span class="vs">vs</span>
+    <span class="side"><strong>${bLabel}</strong> ${bWin}</span>
+    ${scoreHtml}
+    <span class="meta">${key.toUpperCase()}</span>
+  `;
+
+  if (editable) row.addEventListener('click', onMatchClick);
+  return row;
+}
+
+
+function renderWB(wb, merged){
+  wbList.innerHTML='';
+  wb.forEach((round,ri)=>{
+    const sec=document.createElement('div'); sec.className='round';
+    sec.innerHTML=`<h4>WB · Round ${ri+1}</h4>`;
+    round.forEach(m=>{
+      const aId = typeof m.a==='string' && m.a.startsWith('W(') ? winnerIdFromToken(m.a, merged)||null : (m.a||null);
+      const bId = typeof m.b==='string' && m.b.startsWith('W(') ? winnerIdFromToken(m.b, merged)||null : (m.b||null);
+      sec.appendChild(makeMatchRow({key:m.key,aId:aId||'TBD',bId:bId||'TBD',merged}));
+    });
+    wbList.appendChild(sec);
+  });
+}
+function renderLB(lb, merged){
+  lbList.innerHTML='';
+  lb.forEach((round,ri)=>{
+    const sec=document.createElement('div'); sec.className='round';
+    sec.innerHTML=`<h4>LB · Round ${ri+1}</h4>`;
+    round.forEach(m=>{
+      const aId=tokenSideId(m.a, merged) || 'TBD';
+      const bId=tokenSideId(m.b, merged) || 'TBD';
+      sec.appendChild(makeMatchRow({key:m.key,aId,bId,merged}));
+    });
+    lbList.appendChild(sec);
+  });
+}
+function renderGF(wb, lb, merged){
+  gfList.innerHTML='';
+  const sec=document.createElement('div'); sec.className='round';
+  sec.innerHTML='<h4>Grand Final</h4>';
+  const wbFinal=wb.at(-1)?.[0]||null, lbFinal=lb.at(-1)?.[0]||null;
+  const wbChamp=wbFinal ? getWinner(wbFinal.key, merged) : null;
+  const lbChamp=lbFinal ? getWinner(lbFinal.key, merged) : null;
+
+  
+  const gf1={ key:'gf:r0:m0', a: wbChamp||'TBD', b: lbChamp||'TBD' };
+  sec.appendChild(makeMatchRow({key:gf1.key,aId:gf1.a,bId:gf1.b,merged}));
+
+  const gf1Win=getWinner('gf:r0:m0', merged);
+  if(gf1Win && lbChamp && gf1Win===lbChamp){
+    const gf2={ key:'gf:r1:m0', a: wbChamp||'TBD', b: lbChamp||'TBD' };
+    sec.appendChild(makeMatchRow({key:gf2.key,aId:gf2.a,bId:gf2.b,merged}));
+  }
+  gfList.appendChild(sec);
+}
+
+function drawBracket(){
+  const normalized=prepareSeedsForBracket(SEEDS);
+  const liveStarted=hasAnyMatchResult();
+  setSeedEditingLocked(META.seedsLocked || liveStarted);
+
+  if(!normalized.length){
+    wbList.innerHTML=''; lbList.innerHTML=''; gfList.innerHTML='';
+    bvMsg.textContent='No seeds saved yet — add teams, then Save Seeds.';
+    return;
+  }
+  const WB=buildWBRounds(normalized);
+  const autoWB=autoWBResults(WB);
+  
+  const MERGED = Object.assign({}, autoWB, RESULTS);
+  const LB=buildLBStructure(WB, MERGED);
+  const autoLB=autoLBResults(LB);
+  const ALL=Object.assign({}, MERGED, autoLB);
+
+  renderWB(WB, ALL);
+  renderLB(LB, ALL);
+  renderGF(WB, LB, ALL);
+
+  bvMsg.textContent = META.seedsLocked
+    ? 'Seeds are locked (Initiated).'
+    : liveStarted ? 'Results are live; seed editing is locked unless override is enabled.'
+    : 'Preview from seeds.';
+}
+
+
+const matchEditor=$('matchEditor'), editTitle=$('editTitle'), pickA=$('pickA'), pickB=$('pickB'), pickALabel=$('pickALabel'), pickBLabel=$('pickBLabel'), scoreInp=$('scoreInp'), saveEdit=$('saveEdit'), clearEdit=$('clearEdit'), closeEdit=$('closeEdit'), editMsg=$('editMsg');
+let currentEditKey=null, currentAId=null, currentBId=null;
+
+manualToggle.addEventListener('change', ()=> drawBracket());
+
+function onMatchClick(e){
+  if(!manualToggle.checked) return;
+  const card=e.currentTarget;
+  const key=card.dataset.key; const aId=card.dataset.aid||null; const bId=card.dataset.bid||null;
+  if(!key||!aId||!bId||aId==='TBD'||bId==='TBD'||aId===BYE||bId===BYE) return;
+  editTitle.textContent=`Edit ${key.toUpperCase()}`;
+  pickALabel.textContent=labelForTeamId(aId); pickBLabel.textContent=labelForTeamId(bId);
+  pickA.checked=false; pickB.checked=false;
+  scoreInp.value=getScore(key,RESULTS)||'';
+  currentEditKey=key; currentAId=aId; currentBId=bId; editMsg.textContent='';
+  matchEditor.style.display='block'; matchEditor.setAttribute('aria-hidden','false');
+}
+closeEdit.onclick=()=>{ matchEditor.style.display='none'; matchEditor.setAttribute('aria-hidden','true'); };
+clearEdit.onclick=async()=>{
+  if(!currentEditKey) return;
+  try{
+    requireAdmin();
+    const copy={...RESULTS}; delete copy[currentEditKey];
+    await setDoc(doc(brDb,'results','main'), copy, {merge:false});
+    editMsg.textContent='Cleared.'; RESULTS=copy; drawBracket();
+  }catch(err){ editMsg.textContent=err.message||'Clear failed.'; }
+};
+saveEdit.onclick=async()=>{
+  if(!currentEditKey) return;
+  try{
+    requireAdmin();
+    const winId = pickA.checked ? currentAId : pickB.checked ? currentBId : null;
+    if(!winId) throw new Error('Pick a winner.');
+    const score=(scoreInp.value||'').trim();
+    await setDoc(doc(brDb,'results','main'), { ...RESULTS, [currentEditKey]: score?{winner:winId,score}:{winner:winId}, updatedAt:serverTimestamp(), updatedBy:brAuth.currentUser?.email||null }, {merge:false});
+    editMsg.textContent='Saved.';
+  }catch(err){ editMsg.textContent=err.message||'Save failed.'; }
+};
+
+/* ---------- Submissions (listen only if admin) ---------- */
+const subsList=$('subsList'), subsMsg=$('subsMsg'), subFilter=$('sub_filter');
+const subsPrevWB=$('subsPrevWB'), subsPrevLB=$('subsPrevLB'), subsPrevGF=$('subsPrevGF'), subsPrevMsg=$('subsPrevMsg');
+let SUBS=[]; let stopInbox=null;
+
+function prettyMatchTag(matchKey){
+  if(!matchKey) return '—';
+  const m=String(matchKey).match(/^(wb|lb|gf):r?(\d+)?\:m(\d+)$/i);
+  if(!m){ if(/^gf/i.test(matchKey)) return 'Grand Final'; return matchKey; }
+  const type=m[1].toLowerCase(); const rNum=m[2]!=null?(Number(m[2])+1):1; const mNum=Number(m[3])+1;
+  if(type==='wb') return `Winners · R${rNum} · M${mNum}`;
+  if(type==='lb') return `Losers · R${rNum} · M${mNum}`;
+  return `Grand Final`;
+}
+function resolveTeamIdMaybe(value){
+  if(!value) return null;
+  if(TEAMS.some(t=>t.id===value)) return value;
+  const lower=String(value).toLowerCase();
+  for(const t of TEAMS){
+    if(String(t.data.name||'').toLowerCase()===lower) return t.id;
+    if(String(t.data.abbr||'').toLowerCase()===lower) return t.id;
+  }
+  return null;
+}
+function labelForIdOrName(v){ const id=resolveTeamIdMaybe(v)||null; if(id){ const t=TEAMS.find(x=>x.id===id)?.data; return t?.abbr||t?.name||id; } return String(v||''); }
+
+function renderSubs(){
+  const showAll=subFilter.value==='all';
+  subsList.innerHTML='';
+  const pick=(d,keys)=> keys.find(k=> d[k]!=null && String(d[k]).trim()!=='');
+  const list=SUBS.filter(s=> showAll || !s.data.status || s.data.status==='pending')
+                 .sort((a,b)=> (b.data.submittedAt?.seconds||0)-(a.data.submittedAt?.seconds||0));
+  if(!list.length){ subsList.innerHTML='<div class="hint">No submissions.</div>'; return; }
+  const frag=document.createDocumentFragment();
+  list.forEach(({id,data})=>{
+    const aRaw=data[pick(data,['teamAId','teamA','teamId','teamLabel'])] ?? null;
+    const bRaw=data[pick(data,['teamBId','teamB','opponentId','opponentLabel'])] ?? null;
+    const teamA=labelForIdOrName(aRaw)||'—', teamB=labelForIdOrName(bRaw)||'—';
+    const winKey=pick(data,['winnerId','winner','claimedTeamId','claimedTeam']);
+    const winner=labelForIdOrName(winKey ? data[winKey] : null) || '—';
+    const submitter=(data.submittedBy?.email)||(data.submittedBy?.username)||'unknown';
+    const status=data.status||'pending';
+    const tag = prettyMatchTag(data.matchKey||data.key||data.match||'');
+    const score = (data.score||data.series||'').trim();
+    const row=document.createElement('div'); row.className='srow'; row.dataset.id=id;
+    const actions = status==='pending'
+      ? `<button class="mini" data-act="preview">Preview</button><button class="mini primary" data-act="approve">Approve</button><button class="mini danger" data-act="reject">Reject</button>`
+      : `<button class="mini" data-act="preview">Preview</button><button class="mini" data-act="reopen">Reopen</button>`;
+    row.innerHTML = `
+      <div class="smeta">
+        <div><strong>${teamA}</strong><span class="vs">vs</span><strong>${teamB}</strong></div>
+        <div class="dim">${tag}</div>
+        <div class="dim">Winner: <span class="winname">${winner}</span>${score?` · ${score}`:''}</div>
+        <div class="dim">Submitted by: ${submitter}</div>
+      </div>
+      <div class="actions">${actions}</div>`;
+    frag.appendChild(row);
+  });
+  subsList.appendChild(frag);
+}
+subFilter.addEventListener('change', renderSubs);
+
+function extractSubmissionChoice(d){
+  const matchKey=d.matchKey || d.key || d.match || null;
+  const winnerRaw = d.winnerId ?? d.winner ?? d.claimedTeamId ?? d.claimedTeam ?? null;
+  const winnerId  = resolveTeamIdMaybe(winnerRaw);
+  const score=(d.score||d.series||'').trim();
+  return { matchKey, winnerId, score };
+}
+function renderPreviewInto(boxWB, boxLB, boxGF, msgBox, hypo){
+  boxWB.innerHTML=''; boxLB.innerHTML=''; boxGF.innerHTML='';
+  const normalized=prepareSeedsForBracket(SEEDS);
+  if(!normalized.length){ msgBox.textContent='No seeds saved — preview not available.'; return; }
+  const WB=buildWBRounds(normalized);
+  const autoWB=autoWBResults(WB);
+  const M1=Object.assign({}, autoWB, RESULTS, hypo);
+  const LB=buildLBStructure(WB, M1);
+  const autoLB=autoLBResults(LB);
+  const ALL=Object.assign({}, M1, autoLB);
+  renderWB(WB, ALL); renderLB(LB, ALL); renderGF(WB, LB, ALL);
+  msgBox.textContent='Preview applied locally (not saved).';
+}
+subsList.addEventListener('click', async (e)=>{
+  const btn=e.target.closest('button'); if(!btn) return;
+  const row=btn.closest('.srow'); const id=row?.dataset?.id; if(!id) return;
+  const sub=SUBS.find(s=>s.id===id); if(!sub) return;
+
+  if(btn.dataset.act==='preview'){
+    const { matchKey, winnerId, score } = extractSubmissionChoice(sub.data);
+    if(!matchKey){ subsMsg.textContent='Cannot preview: missing matchKey.'; return; }
+    if(!winnerId){ subsMsg.textContent='Cannot preview: unknown winner id.'; return; }
+    renderPreviewInto(subsPrevWB, subsPrevLB, subsPrevGF, subsPrevMsg, { [matchKey]: score?{winner:winnerId,score}:{winner:winnerId} });
+    return;
+  }
+
+  if(!isAdmin()){ subsMsg.textContent='Admin sign-in required.'; return; }
+  const d=sub.data, matchKey=d.matchKey || d.key || d.match;
+  const winnerId=resolveTeamIdMaybe(d.winnerId||d.winner||d.claimedTeamId||d.claimedTeam);
+  const score=(d.score||d.series||'').trim();
+
+  try{
+    if(btn.dataset.act==='approve'){
+      if(!matchKey) throw new Error('Submission missing matchKey.');
+      if(!winnerId) throw new Error('Cannot resolve winner to team id.');
+      await setDoc(doc(brDb,'results','main'), { [matchKey]: score?{winner:winnerId,score}:{winner:winnerId}, updatedAt:serverTimestamp(), updatedBy:brAuth.currentUser.email }, {merge:true});
+      await updateDoc(doc(brDb,'brackets',BRACKET_DOC_ID,'inbox',id), { status:'approved', reviewedAt:serverTimestamp(), reviewedBy:brAuth.currentUser.email });
+      subsMsg.textContent='Approved and applied.';
+    }
+    if(btn.dataset.act==='reject'){
+      const reason=prompt('Reason for rejection? (optional)','');
+      await updateDoc(doc(brDb,'brackets',BRACKET_DOC_ID,'inbox',id), { status:'rejected', rejectionReason:reason||null, reviewedAt:serverTimestamp(), reviewedBy:brAuth.currentUser.email });
+      subsMsg.textContent='Submission rejected.';
+    }
+    if(btn.dataset.act==='reopen'){
+      await updateDoc(doc(brDb,'brackets',BRACKET_DOC_ID,'inbox',id), { status:'pending', rejectionReason:null });
+      subsMsg.textContent='Submission reopened.';
+    }
+  }catch(err){ subsMsg.textContent=err.message||'Action failed.'; }
+});
+
+
+function wireInbox(){
+  if(stopInbox){ stopInbox(); stopInbox=null; }
+  if(!isAdmin()){ SUBS=[]; renderSubs(); return; }
+  stopInbox = onSnapshot(collection(brDb,'brackets',BRACKET_DOC_ID,'inbox'), (snap)=>{ SUBS=[]; snap.forEach(s=> SUBS.push({id:s.id, data:s.data()})); renderSubs(); }, (err)=>{ subsMsg.textContent = err.message || 'Failed to load submissions.'; });
+}
+
+
+const tournStatus=$('tournStatus'), tournInfo=$('tournInfo'), tournMsg=$('tournMsg');
+const btnInitiate=$('btnInitiate'), btnDelete=$('btnDeleteInstance'), toggleOverride=$('toggleOverride');
+
+function isoNow(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return `${d.getUTCFullYear()}-${p(d.getUTCMonth()+1)}-${p(d.getUTCDate())}T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}Z`; }
+function updateTournamentUI(){
+  const live=!!META.initiated;
+  tournStatus.textContent= live ? 'Live (seeds locked)' : 'Draft';
+  tournStatus.style.borderColor = live ? '#214d2a' : '#222';
+  tournInfo.style.display = META.instanceId ? '' : 'none';
+  tournInfo.textContent = META.instanceId ? `Instance: ${META.instanceId}` : '';
+  toggleOverride.checked = !!META.allowAdminOverride;
+  btnInitiate.disabled = META.seedsLocked && META.initiated;
+  btnDelete.disabled = !live && !hasAnyMatchResult();
+  setSeedEditingLocked(META.seedsLocked || hasAnyMatchResult());
+  drawBracket();
+}
+toggleOverride.addEventListener('change', async ()=>{
+  try{
+    requireAdmin();
+    await setDoc(doc(brDb,'meta','main'), { allowAdminOverride: !!toggleOverride.checked }, { merge:true });
+    tournMsg.textContent='Override updated.';
+  }catch(e){ tournMsg.textContent=e.message||'Failed to update override.'; }
+});
+
+btnInitiate.onclick=async()=>{
+  try{
+    requireAdmin();
+    if(META.initiated && META.seedsLocked){ alert('Already initiated.'); return; }
+    if(!Array.isArray(SEEDS)||SEEDS.filter(x=>x!==BYE).length!==7){ alert('You must have exactly 7 teams saved in Seeds before initiating.'); return; }
+    if(!confirm('Initiate Tournament now? This locks Seeds.')) return;
+    tournMsg.textContent='Initiating…';
+    await setDoc(doc(brDb,'meta','main'), { initiated:true, seedsLocked:true, instanceId:isoNow(), initiatedAt:serverTimestamp(), initiatedBy:brAuth.currentUser?.email||null }, { merge:true });
+    tournMsg.textContent='Tournament initiated. Seeds locked.';
+  }catch(err){ tournMsg.textContent=err.message||'Initiation failed.'; }
+};
+btnDelete.onclick=async()=>{
+  try{
+    requireAdmin();
+    if(!confirm('Delete Tournament Instance? This wipes results/tokens/resolver state and unlocks seeds.')) return;
+    if(!confirm('Are you sure? This cannot be undone.')) return;
+    tournMsg.textContent='Deleting instance…';
+    try{ await deleteDoc(doc(brDb,'results','main')); }catch{} RESULTS={};
+    
+    for(const t of TEAMS){
+      const tokSnap=await getDocs(collection(brDb,'brackets',BRACKET_DOC_ID,'teamTokens',t.id,'tokens'));
+      const deletions=[]; tokSnap.forEach(s=> deletions.push(deleteDoc(doc(brDb,'brackets',BRACKET_DOC_ID,'teamTokens',t.id,'tokens',s.id))));
+      if(deletions.length) await Promise.allSettled(deletions);
+    }
+    
+    const resSnap=await getDocs(collection(brDb,'brackets',BRACKET_DOC_ID,'resolvers'));
+    const resDeletes=[]; resSnap.forEach(s=> resDeletes.push(deleteDoc(doc(brDb,'brackets',BRACKET_DOC_ID,'resolvers',s.id))));
+    if(resDeletes.length) await Promise.allSettled(resDeletes);
+    
+    await setDoc(doc(brDb,'meta','main'), { initiated:false, seedsLocked:false, instanceId:null }, { merge:true });
+    tournMsg.textContent='Instance deleted. Seeds unlocked.';
+  }catch(err){ tournMsg.textContent=err.message||'Delete failed.'; }
+};
+
+
+onSnapshot(doc(brDb,'seeds','main'), (snap)=>{ const s=snap.data(); SEEDS = Array.isArray(s?.teamIds) ? s.teamIds.slice() : []; renderBracketLists(); drawBracket(); });
+onSnapshot(doc(brDb,'results','main'), (snap)=>{ RESULTS = snap.exists() ? (snap.data()||{}) : {}; drawBracket(); });
+onSnapshot(doc(brDb,'meta','main'), (snap)=>{ const d=snap.exists()?snap.data():{}; META={ initiated:!!d.initiated, seedsLocked:!!d.seedsLocked, instanceId:d.instanceId||null, initiatedAt:d.initiatedAt||null, initiatedBy:d.initiatedBy||null, allowAdminOverride: !!d.allowAdminOverride }; updateTournamentUI(); });
+
+
+function showTabInit(){ showTab('bracket'); }
+showTabInit();
+manualToggle.checked=false;
+
+await Promise.all([loadPlayers(), loadTeams()]);
+renderBracketLists(); drawBracket();
+wireInbox();
+</script>
+</body>
+</html>

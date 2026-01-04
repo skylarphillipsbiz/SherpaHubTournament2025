@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Player Sign-Up</title>
+
+<style>
+  :root{ --green:#30f470; --purple:#7b5bca; --text:#f4f4f4; --muted:#a0a0a0; --panel:#0b0b0b; --border:#1e1e1e; --bg:#000; }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  .wrap{max-width:980px;margin:0 auto;padding:48px 24px;display:grid;gap:16px}
+  h2{ color:var(--green); font-size:2rem; margin:0 0 8px; display:inline-block; position:relative; }
+  h2::after{ content:""; display:block; height:3px; width:100%; margin-top:6px; border-radius:2px; background:linear-gradient(90deg,var(--green),var(--purple)); }
+  .sub{color:var(--muted); margin:0}
+  .card{ background:linear-gradient(180deg,#141414,#0f0f0f); border:1px solid var(--border); border-radius:16px; padding:16px; }
+  .row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  @media (max-width:720px){ .row{ grid-template-columns:1fr } }
+  label[for]{font-weight:800; font-size:.9rem; color:#d7dde3; margin-bottom:6px; display:block}
+  input,select,textarea{ width:100%; background:#0d0d0d; border:1px solid #1a1a1a; border-radius:10px; padding:10px; color:#f2f2f2; }
+  textarea{min-height:90px}
+  small.hint{color:#9aa3ab; font-size:.85rem; display:block; margin-top:6px}
+  fieldset.seg{ border:none; padding:0; margin:0 0 10px }
+  fieldset.seg legend{ font-weight:800; font-size:.9rem; color:#d7dde3; margin-bottom:8px }
+  .seg-input{ position:absolute !important; inline-size:1px; block-size:1px; margin:-1px; border:0; padding:0; clip-path:inset(50%); overflow:hidden; white-space:nowrap; }
+  .seg-group{ display:grid; grid-template-columns:1fr 1fr; overflow:hidden; border-radius:12px; background:#0b0b0b; border:1px solid #1a1a1a; }
+  .seg-btn{ text-align:center; padding:10px 0; font-weight:800; user-select:none; cursor:pointer; color:#cfd6de; background:#0e0e0e; border-right:1px solid #151515; transition:transform .12s ease, background .12s ease, color .12s ease, border-color .12s ease; }
+  .seg-btn:last-child{ border-right:none }
+  #streams-yes:checked ~ .seg-group label[for="streams-yes"], #streams-no:checked  ~ .seg-group label[for="streams-no"]{ background:#141414; color:#e9fce7; border-color:#2a2a2a; transform:translateY(1px); box-shadow: inset 0 3px 10px rgba(0,0,0,.55), inset 0 0 0 1px #2a2a2a; }
+  #streams-yes:checked ~ .seg-group label[for="streams-yes"]{ color:#30f470 }
+  #streams-no:checked  ~ .seg-group label[for="streams-no"] { color:#ff8b8b }
+  .seg-btn:focus-visible{ outline:2px solid #30f470; outline-offset:-2px }
+  .seg-url{ display:none; margin-top:10px; width:100%; background:#0d0d0d; border:1px solid #1a1a1a; border-radius:10px; padding:10px; color:#f2f2f2; }
+  .btn-primary{ position: relative; display:inline-flex; align-items:center; justify-content:center; gap:10px; background:var(--green); color:#000; font-weight:900; border:1px solid #28e965; border-radius:10px; padding:10px 44px; cursor:pointer; user-select:none; transition:transform .02s ease, opacity .2s ease, border-color .2s ease; }
+  .btn-primary:active{ transform:translateY(1px) scale(.99) }
+  .btn-primary[disabled]{ opacity:.6; cursor:not-allowed }
+  .spinner{ position:absolute; right:12px; top:50%; transform:translateY(-50%); width:16px; height:16px; border-radius:50%; border:2px solid rgba(0,0,0,.2); border-top-color:#000; animation:spin 1s linear infinite; display:none }
+  .btn-primary.is-loading .spinner{ display:inline-block } @keyframes spin{ to{ transform:translateY(-50%) rotate(360deg) } }
+  .ok{display:none;color:#9fe6b8;font-weight:700;margin-top:6px}
+  .err{display:none;color:#ffb3b3;font-weight:700;margin-top:6px}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<section id="player-signup">
+  <div class="wrap">
+    <header>
+      <h2>Player Sign-Up</h2>
+      <p class="sub">For Sherpa Hub & Official EFT Discord staff only (Sherpas, Emissaries, Helpfuls, Ticket Handlers, Moderators, or <strong>Other staff (not listed).</strong></p>
+    </header>
+
+    <div class="card">
+      <form id="playerForm" onsubmit="submitPlayer(event)" style="display:grid; gap:12px">
+
+        <div class="row">
+          <div>
+            <label for="name">Name/Nickname</label>
+            <input id="name" name="name" placeholder="Your name" required autocomplete="name" maxlength="50">
+          </div>
+          <div>
+            <label for="discord_id">Discord ID / Username</label>
+            <input id="discord_id" name="discord_id" placeholder="@username, username#1234, or user ID" required autocomplete="off" maxlength="60" autocapitalize="off" autocorrect="off" spellcheck="false">
+          </div>
+        </div>
+
+        <div>
+          <label for="role">What is your role?</label>
+          <select id="role" name="role" required>
+            <option value="" disabled selected>Select your role</option>
+            <option>Sherpa</option>
+            <option>Emissary</option>
+            <option>Helpful</option>
+            <option>Ticket Handler</option>
+            <option>Moderator</option>
+            <option>Other staff (not listed)</option>
+          </select>
+        </div>
+
+        <!-- Moderator affiliation -->
+        <div id="modOrgWrap" class="hidden">
+          <label for="mod_org">Moderator affiliation</label>
+          <select id="mod_org" name="mod_org">
+            <option value="" disabled selected>Select one</option>
+            <option>Sherpa Hub</option>
+            <option>Official EFT Discord</option>
+            <option>Both</option>
+          </select>
+          <small class="hint">Required only for Moderators.</small>
+        </div>
+
+        <!-- Sherpa region -->
+        <div id="sherpaRegionWrap" class="hidden">
+          <label for="sherpa_region">Sherpa region</label>
+          <select id="sherpa_region" name="sherpa_region">
+            <option value="" disabled selected>Select region</option>
+            <option>NA</option><option>SA</option><option>EU</option><option>AFR</option><option>AS</option><option>OCE</option>
+          </select>
+          <small class="hint">Required only for Sherpas.</small>
+        </div>
+
+        <!-- Emissary region (NEW) -->
+        <div id="emissaryRegionWrap" class="hidden">
+          <label for="emissary_region">Emissary region</label>
+          <select id="emissary_region" name="emissary_region">
+            <option value="" disabled selected>Select region</option>
+            <option>NA</option><option>SA</option><option>EU</option><option>AFR</option><option>AS</option><option>OCE</option>
+          </select>
+          <small class="hint">Required only for Emissaries.</small>
+        </div>
+
+        <!-- Other staff subtype -->
+        <div id="otherStaffWrap" class="hidden">
+          <label for="other_staff_type">Staff type</label>
+          <select id="other_staff_type" name="other_staff_type">
+            <option value="" disabled selected>Select one</option>
+            <option>Retired</option>
+            <option>Support</option>
+            <option>Community</option>
+            <option>Not listed</option>
+          </select>
+          <small class="hint">Required only for “Other staff (not listed)”.</small>
+        </div>
+
+        <div>
+          <label for="bio">Tell us about yourself (short is fine)</label>
+          <textarea id="bio" name="bio" required maxlength="500"></textarea>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="hours_played">Hours Played</label>
+            <input id="hours_played" name="hours_played" type="number" min="0" max="50000" step="1" inputmode="numeric" required>
+          </div>
+          <div>
+            <label for="role_since">Role since (start month)</label>
+            <input id="role_since" name="role_since" type="month" required>
+            <small class="hint">Month &amp; year (e.g., 2025-10)</small>
+          </div>
+        </div>
+
+        <div>
+          <label for="favorite_moment">Favorite Tarkov Moment or Story</label>
+          <textarea id="favorite_moment" name="favorite_moment" required maxlength="600"></textarea>
+        </div>
+
+        <div>
+          <label for="skill_level">Arena Skill Level</label>
+          <select id="skill_level" name="skill_level" required>
+            <option value="" disabled selected>Select one</option>
+            <option>Very skilled (top tier)</option>
+            <option>Skilled</option>
+            <option>Solid / above average</option>
+            <option>Learning / developing</option>
+            <option>Not focused on PvP</option>
+          </select>
+          <small class="hint">Used to balance teams and match expectations.</small>
+        </div>
+
+        <fieldset class="seg" aria-labelledby="seg-legend">
+          <legend id="seg-legend">Do you stream?</legend>
+          <input class="seg-input" type="radio" name="streams" id="streams-yes" value="yes" required>
+          <input class="seg-input" type="radio" name="streams" id="streams-no"  value="no">
+          <div class="seg-group">
+            <label class="seg-btn" for="streams-yes">Yes</label>
+            <label class="seg-btn" for="streams-no">No</label>
+          </div>
+          <input id="streamLink" name="stream_link" type="url" placeholder="Stream link (required if Yes)" class="seg-url">
+        </fieldset>
+
+        <input type="text" name="_gotcha" style="display:none">
+
+        <button id="submitBtn" type="submit" class="btn-primary">
+          <span class="btn-label">Submit</span><span class="spinner" aria-hidden="true"></span>
+        </button>
+
+        <div id="playerThanks" class="ok" role="status" aria-live="polite">Thanks! Your signup was received.</div>
+        <div id="playerError"  class="err" role="alert"  aria-live="assertive">Something went wrong—please try again.</div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const rs = document.getElementById('role_since'); if (rs) rs.max = new Date().toISOString().slice(0,7);
+
+    const yes = document.getElementById('streams-yes');
+    const no  = document.getElementById('streams-no');
+    const url = document.getElementById('streamLink');
+    function updateStream(){ const show = !!(yes && yes.checked); if (url){ url.style.display = show ? 'block' : 'none'; url.required = show; if(!show) url.value=''; } }
+    ['change','input'].forEach(ev=>{ if (yes) yes.addEventListener(ev, updateStream); if (no) no.addEventListener(ev, updateStream); });
+    updateStream();
+
+    const roleSel = document.getElementById('role');
+    const modWrap = document.getElementById('modOrgWrap');
+    const modSel  = document.getElementById('mod_org');
+    const sherpaWrap = document.getElementById('sherpaRegionWrap');
+    const sherpaSel  = document.getElementById('sherpa_region');
+    const emisWrap = document.getElementById('emissaryRegionWrap');
+    const emisSel  = document.getElementById('emissary_region');
+
+    const otherWrap = document.getElementById('otherStaffWrap');
+    const otherSel  = document.getElementById('other_staff_type');
+
+    function updateRoleExtras(){
+      const role = roleSel?.value || '';
+      const isMod = role === 'Moderator';
+      const isSherpa = role === 'Sherpa';
+      const isEmissary = role === 'Emissary';
+      const isOther = role === 'Other staff (not listed)';
+
+      modWrap?.classList.toggle('hidden', !isMod);
+      if (modSel){ modSel.required = isMod; if (!isMod) modSel.value=''; }
+
+      sherpaWrap?.classList.toggle('hidden', !isSherpa);
+      if (sherpaSel){ sherpaSel.required = isSherpa; if (!isSherpa) sherpaSel.value=''; }
+
+      emisWrap?.classList.toggle('hidden', !isEmissary);
+      if (emisSel){ emisSel.required = isEmissary; if (!isEmissary) emisSel.value=''; }
+
+      otherWrap?.classList.toggle('hidden', !isOther);
+      if (otherSel){ otherSel.required = isOther; if (!isOther) otherSel.value=''; }
+    }
+    roleSel?.addEventListener('change', updateRoleExtras);
+    updateRoleExtras();
+  });
+
+  function uuid(){ if (crypto.randomUUID) return crypto.randomUUID(); return 'xxxxxxxxyxxx'.replace(/[xy]/g, c=>{const r=Math.random()*16|0, v=c==='x'?r:(r&0x3|0x8); return v.toString(16);}); }
+  function docIdFromDiscord(input){ return String(input||"").trim().toLowerCase().replace(/^@/,'').replace(/\s+/g,'').replace(/[^a-z0-9._-]+/g,'_').slice(0,60); }
+  function showErr(msg){ const err = document.getElementById('playerError'); if (err){ err.textContent = msg; err.style.display='block'; setTimeout(()=> err.style.display='none', 4000); } }
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDZPD8nUaLXmKbosAVnzs3btqf-8KDGTas",
+    authDomain: "eft-sherpa-hub.firebaseapp.com",
+    projectId: "eft-sherpa-hub",
+    storageBucket: "eft-sherpa-hub.firebasestorage.app",
+    messagingSenderId: "831895286596",
+    appId: "1:831895286596:web:f381dc5e199c0e27bd9d11"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  const signupsCol = collection(db, "signups");
+
+  window.submitPlayer = async function(e){
+    e.preventDefault();
+    const form   = e.target;
+    const thanks = document.getElementById('playerThanks');
+    const errBox = document.getElementById('playerError');
+    const btn    = document.getElementById('submitBtn');
+    if (btn && btn.hasAttribute('disabled')) return;
+    if (!form.reportValidity()) return;
+
+    const fd = new FormData(form);
+    if (fd.get('_gotcha')) return;
+
+    const name       = (fd.get('name')||'').toString().trim();
+    const discord    = (fd.get('discord_id')||'').toString().trim();
+    const role       = (fd.get('role')||'').toString().trim();
+    const modOrg     = (fd.get('mod_org')||'').toString().trim();
+    const sherpaReg  = (fd.get('sherpa_region')||'').toString().trim();
+    const emisReg    = (fd.get('emissary_region')||'').toString().trim();
+    const otherType  = (fd.get('other_staff_type')||'').toString().trim();
+    const bio        = (fd.get('bio')||'').toString().trim();
+    const hours      = Number((fd.get('hours_played')||'0').toString().trim());
+    const roleSince  = (fd.get('role_since')||'').toString().trim();
+    const favorite   = (fd.get('favorite_moment')||'').toString().trim();
+    const skill      = (fd.get('skill_level')||'').toString().trim();
+    const streams    = (fd.get('streams')||'').toString().trim();
+    const streamLink = (fd.get('stream_link')||'').toString().trim();
+
+    if (!Number.isInteger(hours) || hours < 0 || hours > 50000) return showErr('Hours played must be 0–50,000 (whole number).');
+    if (roleSince.length !== 7) return showErr('Pick your start month (YYYY-MM).');
+    if (!streams) return showErr('Please choose if you stream.');
+    if (streams === 'yes' && !streamLink) return showErr('Please add your stream link.');
+    if (streamLink) {
+      try { const u = new URL(streamLink); if (!['http:','https:'].includes(u.protocol)) throw 0; }
+      catch { return showErr('Stream link must be a valid URL.'); }
+      if (streamLink.length > 300) return showErr('Stream link is too long.');
+    }
+    if (discord.length > 60) return showErr('Discord field is too long (max 60).');
+    if (role === 'Moderator' && !modOrg) return showErr('Please select your moderator affiliation.');
+    if (role === 'Sherpa' && !sherpaReg) return showErr('Please select your Sherpa region.');
+    if (role === 'Emissary' && !emisReg) return showErr('Please select your Emissary region.');
+    if (role === 'Other staff (not listed)' && !otherType) return showErr('Please select your staff type.');
+
+    const submissionId = uuid();
+    const docId = docIdFromDiscord(discord) || submissionId;
+
+    if (btn){ btn.classList.add('is-loading'); btn.setAttribute('disabled','true'); }
+    if (errBox) errBox.style.display='none';
+    if (thanks) thanks.style.display='none';
+
+    try{
+      const pre = await getDoc(doc(signupsCol, docId));
+      const duplicate = pre.exists();
+
+      if (!duplicate) {
+        const payload = {
+          name, discord_id: discord, role,
+          ...(role === 'Moderator' ? { mod_org: modOrg } : {}),
+          ...(role === 'Sherpa' ? { sherpa_region: sherpaReg } : {}),
+          ...(role === 'Emissary' ? { emissary_region: emisReg } : {}),
+          ...(role === 'Other staff (not listed)' ? { other_staff_type: otherType } : {}),
+          bio,
+          hours_played: Math.trunc(hours),
+          role_since: roleSince,
+          favorite_moment: favorite,
+          skill_level: skill,
+          streams,
+          ...(streamLink ? { stream_link: streamLink } : {}),
+          submission_id: submissionId,
+          createdAt: serverTimestamp()
+        };
+        await setDoc(doc(signupsCol, docId), payload, { merge:false });
+      }
+
+      form.reset();
+      document.getElementById('streamLink').style.display='none';
+      document.getElementById('modOrgWrap').classList.add('hidden');
+      document.getElementById('sherpaRegionWrap').classList.add('hidden');
+      document.getElementById('emissaryRegionWrap').classList.add('hidden');
+      document.getElementById('otherStaffWrap').classList.add('hidden');
+
+      if (thanks){
+        thanks.textContent = duplicate ? 'Already received — no duplicate saved.' : 'Thanks! Your signup was received.';
+        thanks.style.display='block';
+        setTimeout(()=> thanks.style.display='none', 3000);
+      }
+    }catch(ex){
+      console.error(ex);
+      showErr('Something went wrong—please try again.');
+    }finally{
+      if (btn){ btn.classList.remove('is-loading'); btn.removeAttribute('disabled'); }
+    }
+  };
+</script>
+</body>
+</html>
