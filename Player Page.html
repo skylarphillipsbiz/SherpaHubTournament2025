@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>The Players</title>
+
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="//www.gstatic.com">
+
+<style>
+  :root{
+    --sherpa:#30f470; --emissary:#7b5bca; --helpful:#ff7a1c; --moderator:#ff2b2b; --ticket:#e6ac79; --staff:#22d3ee;
+    --moderator-official:#b01a1a;
+    --bg:#000; --panel:#0f0f0f; --text:#f2f2f2; --muted:#9ca3af; --border:#1a1a1a;
+    --twitch:#9146ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:auto;padding:28px 16px 64px}
+  h1{font-size:clamp(24px,3vw,36px);margin:0 0 6px;font-weight:800}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:15px}
+
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin:16px 0 18px}
+  .filters{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700;transition:all .15s}
+  .btn:hover{border-color:#333}
+  .btn[aria-pressed="true"][data-role="all"]{border-color:#888;background:#151515}
+  .btn[aria-pressed="true"][data-role="sherpa"]{border-color:var(--sherpa);color:var(--sherpa)}
+  .btn[aria-pressed="true"][data-role="emissary"]{border-color:var(--emissary);color:var(--emissary)}
+  .btn[aria-pressed="true"][data-role="helpful"]{border-color:var(--helpful);color:var(--helpful)}
+  .btn[aria-pressed="true"][data-role="moderator"]{border-color:var(--moderator);color:var(--moderator)}
+  .btn[aria-pressed="true"][data-role="ticket"]{border-color:var(--ticket);color:var(--ticket)}
+  .btn[aria-pressed="true"][data-role="staff"]{border-color:var(--staff);color:var(--staff)}
+
+  .search{position:relative;flex:1;min-width:220px;max-width:360px;display:block}
+  .search input{
+    width:100%;padding:12px 14px 12px 38px;border-radius:12px;border:1px solid var(--border);
+    background:var(--panel);color:var(--text);position:relative;z-index:0;line-height:1.2
+  }
+  .search svg{
+    position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.7;pointer-events:none;overflow:visible;z-index:1
+  }
+
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));align-items:stretch}
+  .card{
+    position:relative;
+    display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--border);
+    border-radius:16px;padding:14px;transition:all .15s;min-height:440px
+  }
+  .card:hover{border-color:#333;transform:translateY(-2px)}
+  .card-head{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:8px}
+  .avatar{width:56px;height:56px;border-radius:12px;object-fit:cover;background:#111}
+  .avatar-fb{width:56px;height:56px;border-radius:12px;background:#111;color:#e5e5e5;display:flex;align-items:center;justify-content:center;font-weight:800}
+
+  .name{font-weight:900;font-size:clamp(18px,2.2vw,22px);text-align:center}
+  .name.sherpa{color:var(--sherpa)} .name.emissary{color:var(--emissary)} .name.helpful{color:var(--helpful)}
+  .name.moderator{color:var(--moderator)} .name.ticket{color:var(--ticket)} .name.staff{color:var(--staff)}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:10px;background:#111;border:1px solid #333;font-size:12px;width:max-content;margin:6px auto 0}
+  .badge .dot{display:inline-block;inline-size:8px;block-size:8px;border-radius:999px;flex:0 0 auto}
+  .badge.sherpa .dot{background:var(--sherpa)}
+  .badge.emissary .dot{background:var(--emissary)}
+  .badge.helpful .dot{background:var(--helpful)}
+  .badge.moderator .dot{background:var(--moderator)}
+  .badge.ticket .dot{background:var(--ticket)}
+  .badge.staff .dot{background:var(--staff)}
+
+  .badge.sherpa{border-color:var(--sherpa);color:var(--sherpa)}
+  .badge.emissary{border-color:var(--emissary);color:var(--emissary)}
+  .badge.helpful{border-color:var(--helpful);color:var(--helpful)}
+  .badge.moderator{border-color:var(--moderator);color:var(--moderator)}
+  .badge.ticket{border-color:var(--ticket);color:var(--ticket)}
+  .badge.staff{border-color:var(--staff);color:var(--staff)}
+
+  .bio{color:#d1d5db;font-size:13px;line-height:1.5;margin:8px 0 10px}
+
+  .meta{display:grid;gap:6px;margin:8px 0 10px}
+  .meta-row{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+    background:#111;padding:8px 10px;border:1px solid #161616;border-radius:10px
+  }
+  .meta-label{color:var(--muted);font-size:12px;min-width:0;white-space:normal}
+  .meta-value{font-size:13px;font-weight:700;white-space:normal}
+  .meta-row.since .meta-value{ white-space:nowrap }
+
+  .achieve{background:#0e0e0e;border:1px dashed #1f1f1f;border-radius:10px;padding:10px;color:#d6d6d6;font-size:13px;line-height:1.45;margin-bottom:14px;min-height:60px;max-height:160px;overflow:auto}
+
+  .twitch-cta{
+    position:absolute; top:10px; right:10px;
+    display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:28px;
+    border-radius:8px;
+    background:#0f0f0f;
+    border:1px solid #1d1d1d;
+    text-decoration:none;
+    transition:transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+  }
+  .twitch-cta svg{ width:18px; height:18px; display:block; }
+  .twitch-cta .glyph{ fill:var(--twitch); }
+  .twitch-cta:hover{ transform:translateY(-1px); border-color:#333; box-shadow:0 0 0 2px rgba(145,70,255,.12) inset; }
+  .twitch-cta:focus-visible{ outline:2px solid var(--twitch); outline-offset:2px; }
+
+  .sr-only{
+    position:absolute !important; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+
+  .no-results{display:none;color:#888;text-align:center;padding:20px;border:1px dashed #222;border-radius:14px;background:#101010;margin-top:8px}
+
+  .card.mod-official{ --moderator: var(--moderator-official); }
+
+  .tag{font-size:11px;border:1px solid #333;padding:2px 8px;border-radius:999px;white-space:nowrap;flex:0 1 auto;display:inline-block;margin:4px auto 0; width:max-content}
+  .tag.staff{border-color:var(--staff);color:var(--staff)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>The Players</h1>
+    <p class="sub">Filter by role or search by name.</p>
+
+    <div class="controls">
+      <div class="filters">
+        <button class="btn" aria-pressed="true"  data-role="all">All</button>
+        <button class="btn" aria-pressed="false" data-role="sherpa">Sherpas</button>
+        <button class="btn" aria-pressed="false" data-role="emissary">Emissaries</button>
+        <button class="btn" aria-pressed="false" data-role="helpful">Helpfuls</button>
+        <button class="btn" aria-pressed="false" data-role="moderator">Moderators</button>
+        <button class="btn" aria-pressed="false" data-role="ticket">Ticket Handlers</button>
+        <button class="btn" aria-pressed="false" data-role="staff">Staff</button>
+      </div>
+      <label class="search">
+        <svg width="18" height="18" viewBox="-1 -1 26 26" fill="none" aria-hidden="true" style="overflow:visible;display:block">
+          <path d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 0 0114 0z" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <input id="search" type="search" placeholder="Search players…" aria-label="Search players"/>
+      </label>
+    </div>
+
+    <div id="grid" class="grid"></div>
+    <div id="empty" class="no-results">No players match your filters.</div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDZPD8nUaLXmKbosAVnzs3btqf-8KDGTas",
+    authDomain: "eft-sherpa-hub.firebaseapp.com",
+    projectId: "eft-sherpa-hub",
+    storageBucket: "eft-sherpa-hub.appspot.com",
+    messagingSenderId: "831895286596",
+    appId: "1:831895286596:web:f381dc5e199c0e27bd9d11"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  const grid  = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  const filterBtns = document.querySelectorAll('.filters .btn');
+  const searchInput = document.getElementById('search');
+
+  function roleClass(label){
+    const m = {
+      'Sherpa':'sherpa','Emissary':'emissary','Helpful':'helpful',
+      'Ticket Handler':'ticket','Moderator':'moderator',
+      'Other staff (not listed)':'staff'
+    };
+    return m[label] || 'helpful';
+  }
+  function initials(name){
+    return (name||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') || '??';
+  }
+  function formatHours(n){
+    const x=Number(n)||0; return x>=1000 ? (x/1000).toFixed(x%1000===0?0:1)+'k' : String(x);
+  }
+  function fmtSince(s){
+    const m=String(s||'').match(/^(\d{4})-(\d{2})$/);
+    if(m){const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${months[+m[2]-1]} ${m[1]}`;}
+    return s||'—';
+  }
+  function normalizedHandle(raw){
+    const v=String(raw||'').trim();
+    return (v && !v.startsWith('@') && !v.includes('#') && /^[\w.\-]{2,32}$/.test(v)) ? '@'+v : v;
+  }
+
+  function createCard(d){
+    const p = {
+      name: d.name||'—',
+      handle: normalizedHandle(d.discord_id),
+      roleLabel: d.role||'',
+      roleClass: roleClass(d.role||''),
+      modOrg: d.mod_org || '',
+      staffType: d.other_staff_type || '',
+      regionSherpa: d.sherpa_region || '',
+      regionEmis: d.emissary_region || '',
+      avatar: String(d.avatar_url||'').trim(),
+      twitch: String(d.stream_link||'').trim(),
+      bio: d.bio||'',
+      hours: Number(d.hours_played||0)||0,
+      since: fmtSince(d.role_since),
+      achievement: d.favorite_moment||''
+    };
+
+    const card=document.createElement('article');
+    card.className='card';
+    card.tabIndex=0;
+
+    const isOfficialMod = /^Moderator$/i.test(p.roleLabel) && /official\s*eft\s*discord/i.test(p.modOrg);
+    if (isOfficialMod) card.classList.add('mod-official');
+
+    const head=document.createElement('div'); head.className='card-head';
+    if (p.avatar){
+      const img=new Image(); img.className='avatar'; img.alt='avatar'; img.src=p.avatar; img.loading='lazy';
+      img.onerror=()=>{ const fb=document.createElement('div'); fb.className='avatar-fb'; fb.textContent=initials(p.name); img.replaceWith(fb); };
+      head.appendChild(img);
+    } else {
+      const fb=document.createElement('div'); fb.className='avatar-fb'; fb.textContent=initials(p.name); head.appendChild(fb);
+    }
+
+    const meta=document.createElement('div');
+    meta.innerHTML = `<div class="name ${p.roleClass}">${p.name}</div>`;
+    head.appendChild(meta);
+    card.appendChild(head);
+
+    let badgeText;
+    if (p.roleLabel === 'Other staff (not listed)') {
+      const sub = (p.staffType || '').trim();
+      badgeText = (!sub || /^not\s*listed$/i.test(sub)) ? 'Staff' : `${sub} Staff`;
+    } else if (p.roleLabel === 'Moderator' && p.modOrg) {
+      badgeText = `Moderator — ${p.modOrg}`;
+    } else {
+      badgeText = p.roleLabel;
+    }
+
+    const badge=document.createElement('span'); badge.className='badge '+p.roleClass;
+    badge.innerHTML=`<i class="dot" aria-hidden="true"></i><span>${badgeText}</span>`;
+    card.appendChild(badge);
+
+    const bio=document.createElement('p'); bio.className='bio'; bio.textContent=p.bio; card.appendChild(bio);
+
+    const metaBox=document.createElement('div'); metaBox.className='meta';
+    metaBox.innerHTML += `
+      <div class="meta-row">
+        <span class="meta-label">Hours played</span>
+        <span class="meta-value">${formatHours(p.hours)}</span>
+      </div>
+    `;
+
+    if (p.roleLabel==='Sherpa' && p.regionSherpa){
+      metaBox.innerHTML += `
+        <div class="meta-row">
+          <span class="meta-label">Sherpa region</span>
+          <span class="meta-value">${p.regionSherpa}</span>
+        </div>
+      `;
+    }
+    if (p.roleLabel==='Emissary' && p.regionEmis){
+      metaBox.innerHTML += `
+        <div class="meta-row">
+          <span class="meta-label">Emissary region</span>
+          <span class="meta-value">${p.regionEmis}</span>
+        </div>
+      `;
+    }
+
+    const sinceLabel = `${p.roleLabel || 'Role'} since`;
+    metaBox.innerHTML += `
+      <div class="meta-row since">
+        <span class="meta-label">${sinceLabel}</span>
+        <span class="meta-value">${p.since}</span>
+      </div>
+    `;
+    card.appendChild(metaBox);
+
+    const ach=document.createElement('div'); ach.className='achieve';
+    ach.innerHTML = `<strong>Favorite Moment or Greatest Achievement:</strong><br><span>${p.achievement||'—'}</span>`;
+    card.appendChild(ach);
+
+    if (p.twitch){
+      const link=document.createElement('a');
+      link.className='twitch-cta';
+      link.href=p.twitch;
+      link.target='_blank';
+      link.rel='noopener noreferrer';
+      link.setAttribute('aria-label', 'Open Twitch stream in a new tab');
+      link.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path class="glyph" d="M21 3H5L3 5v12l3 3h3v-3h4l3-3h3l2-2V3zm-3 8-2 2h-3l-3 3v-3H6V5h12v6zM10 7h2v4h-2V7zm5 0h2v4h-2V7z"/>
+        </svg>
+        <span class="sr-only">Twitch</span>
+      `;
+      card.appendChild(link);
+    }
+
+    return card;
+  }
+
+  let ALL = [];
+  let roleFilter = 'all';
+  let qText = '';
+
+  function render(){
+    grid.innerHTML='';
+    const list = ALL.filter(d=>{
+      if (d.deleted===true) return false;
+      const roleOk = roleFilter==='all' || roleClass(d.role||'')===roleFilter;
+      const searchOk = !qText || (String(d.name||'')+' '+(String(d.discord_id||'').toLowerCase())).toLowerCase().includes(qText);
+      return roleOk && searchOk;
+    });
+    empty.style.display = list.length ? 'none' : 'block';
+    list.forEach(d => grid.appendChild(createCard(d)));
+  }
+
+  filterBtns.forEach(b=>b.addEventListener('click', ()=>{
+    roleFilter = b.dataset.role;
+    filterBtns.forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+    render();
+  }));
+  searchInput.addEventListener('input', e=>{
+    clearTimeout(searchInput._t);
+    searchInput._t = setTimeout(()=>{ qText = e.target.value.toLowerCase(); render(); }, 80);
+  });
+
+  function subscribe(){
+    grid.innerHTML = '<div class="no-results" style="display:block">Loading…</div>';
+    const q = query(collection(db,'signups'), orderBy('createdAt','desc'));
+    onSnapshot(q, (snap)=>{
+      ALL = [];
+      snap.forEach(s => ALL.push(s.data()));
+      render();
+    }, (err)=>{
+      console.error('Snapshot error:', err);
+      grid.innerHTML=''; empty.style.display='block'; empty.textContent='Could not load players.';
+    });
+  }
+  subscribe();
+</script>
+</body>
+</html>

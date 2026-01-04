@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>EFT Sherpa Hub — Bracket (teams delete/rename on cards)</title>
+
+<style>
+  :root{ --bg:#000; --panel:#0f0f0f; --text:#f2f2f2; --muted:#9ca3af; --border:#1a1a1a; --accent:#30f470 }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+  .wrap{max-width:1280px;margin:auto;padding:28px 16px 80px}
+  h1{margin:0 0 8px;font-size:clamp(24px,3vw,36px);font-weight:900}
+  .sub{color:var(--muted);margin:0 0 16px}
+  .note{color:var(--muted);font-size:12px}
+
+  /* Tabs */
+  .tabs{display:flex;gap:10px;margin:12px 0 16px;flex-wrap:wrap;align-items:center}
+  .tab{padding:10px 14px;border:1px solid var(--border);background:#101010;border-radius:12px;font-weight:800;cursor:pointer;color:#eaeaea}
+  .tab[aria-selected="true"]{outline:2px solid var(--accent)}
+  .ghostbtn{padding:8px 10px;border:1px solid var(--border);background:#0f0f0f;color:#eaeaea;border-radius:10px;font-weight:700;cursor:pointer;font-size:12px}
+  .ghostbtn[disabled]{opacity:.5;cursor:not-allowed}
+
+  /* Panels */
+  .panel{background:linear-gradient(180deg,#141414,#0f0f0f);border:1px solid var(--border);border-radius:16px;padding:14px;position:relative;display:none}
+  .panel[aria-hidden="false"]{display:block}
+  .panel h2{margin:0 0 10px;font-size:16px;font-weight:900}
+
+  /* Bracket */
+  .bracket-host{position:relative;overflow-x:auto;overflow-y:hidden;border-radius:12px}
+  .columns{display:flex;gap:48px;align-items:flex-start;min-width:max-content;padding-bottom:8px}
+  .round{min-width:320px;position:relative}
+  .round-title{font-size:12px;color:var(--muted);margin:0 0 10px;font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+  .stack{display:flex;flex-direction:column;gap:26px}
+
+  /* Matches */
+  .match{border:1px solid #2a2a2a;border-radius:12px;background:#101010;padding:10px 10px 22px;position:relative;z-index:1}
+  .slot{display:flex;align-items:center;gap:10px;min-height:28px;padding:6px 10px;border-radius:8px}
+  .name{font:800 13px/1 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .winnerTag{font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid #303030;color:#b9c0c7;min-width:22px;text-align:center}
+  .win{border-color:#30f470;color:#d7ffe8}
+  .bye{opacity:.55}
+  .clickable .name{cursor:pointer}
+
+  /* Final */
+  .gf-box{background:#0f0f0f;border:1px solid var(--border);border-radius:16px;padding:20px}
+  .gf-title{margin:0 0 12px;font-size:14px;font-weight:900;color:#9aa3af;text-transform:uppercase;letter-spacing:.3px}
+  .gf-row{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
+  .gf-team{
+    display:flex;align-items:center;gap:12px;
+    padding:16px 20px;border:1px solid #2a2a2a;border-radius:12px;background:#101010;
+    font-weight:900;font-size:clamp(20px,4vw,40px);
+    cursor:default;user-select:none
+  }
+  .gf-team.clickable{cursor:pointer}
+  .gf-team.win{outline:2px solid var(--accent);color:#d7ffe8}
+  .gf-vs{font-weight:900;letter-spacing:.25em;color:#9aa3af;font-size:clamp(14px,2.5vw,16px)}
+  .gf-score{
+    font:800 clamp(22px,5vw,44px)/1 monospace;
+    padding:10px 14px;border-radius:12px;border:1px dashed #303030;background:#0d0d0d;min-width:110px;text-align:center;
+    cursor:default;user-select:none
+  }
+  .gf-score.clickable{cursor:pointer}
+
+  /* Lines */
+  .lines{position:absolute;inset:0;pointer-events:none;z-index:0}
+  .path{stroke:#9aa3b1;stroke-width:4;fill:none;vector-effect:non-scaling-stroke;stroke-linecap:square}
+
+  /* Admin */
+  .details{background:#101010;border:1px solid #262626;border-radius:12px;margin-top:12px}
+  .details>summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:800}
+  .details>summary::-webkit-details-marker{display:none}
+  .details .body{padding:12px 14px;border-top:1px solid #262626}
+  .list{background:#0f0f0f;border:1px solid #262626;border-radius:10px;min-width:280px}
+  .list h4{margin:0;padding:10px;border-bottom:1px solid #262626;font-size:13px}
+  .list ul{list-style:none;margin:0;padding:0}
+  .list li{display:flex;align-items:center;gap:8px;padding:8px 10px;border-top:1px solid #1a1a1a}
+
+  /* Rosters */
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .roster-card{position:relative;background:#101010;border:1px solid #262626;border-radius:12px;padding:12px}
+  .roster-card h3{margin:0 0 8px;font-size:14px;font-weight:900}
+  .roster-card ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .roster-card li{background:#0f0f0f;border:1px solid #1a1a1a;border-radius:8px;padding:8px 10px;font-size:13px}
+
+  /* Actions */
+  .team-actions{position:absolute;top:8px;right:8px;display:flex;gap:6px;opacity:0;transition:opacity .15s}
+  .roster-card:hover .team-actions{opacity:1}
+  .iconbtn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#0f0f0f;border:1px solid #2a2a2a;cursor:pointer}
+  .iconbtn:hover{border-color:#3a3a3a;background:#111}
+  .iconbtn svg{width:16px;height:16px;stroke:#e5e5e5}
+
+  /* Hotspot */
+  #btnSign{
+    position:fixed;bottom:10px;right:10px;
+    width:8px;height:8px;border-radius:999px;
+    font-size:0;padding:0;margin:0;
+    background:#3a3a3a;border:1px solid #2a2a2a;
+    opacity:.14;cursor:pointer;z-index:9999;
+  }
+  #btnSign:hover{opacity:.7}
+  #btnSign:focus-visible{outline:2px solid var(--accent)}
+  #btnSign.reveal{width:auto;height:auto;border-radius:10px;font-size:12px;padding:6px 10px;background:#0f0f0f;color:#9aa3af;opacity:1;border:1px solid var(--border)}
+</style>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tournament Bracket</h1>
+
+  <div class="tabs" role="tablist" aria-label="Sections">
+    <button id="t-wb" class="tab" role="tab" aria-controls="p-wb" aria-selected="true">Winners Bracket</button>
+    <button id="t-lb" class="tab" role="tab" aria-controls="p-lb" aria-selected="false">Losers Bracket</button>
+    <button id="t-gf" class="tab" role="tab" aria-controls="p-gf" aria-selected="false">Grand Final</button>
+    <span id="authBadge" class="note" style="margin-left:auto"></span>
+    <button id="btnViewPublic" class="ghostbtn" style="display:none">View as public: Off</button>
+    <button id="btnSign" class="tab" title="Admin sign-in (Shift+S)" aria-label="Admin sign-in">admin sign-in</button>
+    <button id="btnOut" class="tab" style="display:none">Sign out</button>
+  </div>
+
+  <section id="p-wb" class="panel" role="tabpanel" aria-hidden="false">
+    <h2>Winners Bracket</h2>
+    <div id="wbHost" class="bracket-host">
+      <svg id="wbLines" class="lines"></svg>
+      <div id="wbCols" class="columns"></div>
+    </div>
+  </section>
+
+  <section id="p-lb" class="panel" role="tabpanel" aria-hidden="true">
+    <h2>Losers Bracket</h2>
+    <div id="lbHost" class="bracket-host">
+      <svg id="lbLines" class="lines"></svg>
+      <div id="lbCols" class="columns"></div>
+    </div>
+  </section>
+
+  <section id="p-gf" class="panel" role="tabpanel" aria-hidden="true">
+    <h2>Grand Final</h2>
+    <div id="gfRoot"></div>
+  </section>
+
+  <section id="admin" style="display:none">
+    <details class="details">
+      <summary>Teams & Rosters</summary>
+      <div class="body">
+        <div class="row" style="margin-bottom:8px;display:flex;gap:8px;flex-wrap:wrap">
+          <input id="newTeam" placeholder="New team name"/>
+          <button id="addTeam" class="ghostbtn">Add Team</button>
+          <select id="teamPick"></select>
+          <input id="playerName" placeholder="Player name"/>
+          <button id="addPlayer" class="ghostbtn">Add Player</button>
+          <button id="saveRosters" class="ghostbtn">Save Rosters</button>
+          <button id="saveTeam" class="ghostbtn">Save This Team</button>
+        </div>
+
+        <div class="row" style="margin:10px 0;gap:10px;align-items:flex-start;display:flex;flex-wrap:wrap">
+          <div class="list" style="min-width:320px;max-width:420px">
+            <h4>Players (Signups)</h4>
+            <div style="display:flex;gap:8px;padding:8px;border-bottom:1px solid #262626;align-items:center;flex-wrap:wrap">
+              <input id="playerSearch" placeholder="Search name or handle…" style="flex:1;min-width:220px;padding:8px;border-radius:8px;border:1px solid #1a1a1a;background:#0f0f0f;color:#e5e5e5"/>
+              <label class="note" style="display:flex;align-items:center;gap:6px">
+                <input id="playersSelectAll" type="checkbox"/> Select all
+              </label>
+              <button id="addPlayersFromList" class="ghostbtn" title="Add selected players to chosen team">Add Selected → Team</button>
+            </div>
+            <ul id="playersUL"></ul>
+          </div>
+
+          <div class="list" style="min-width:320px;max-width:420px">
+            <h4>Team (Selected)</h4>
+            <div style="padding:8px;border-bottom:1px solid #262626">
+              <select id="teamPick2" style="width:100%"></select>
+            </div>
+            <div class="note" style="padding:8px">Pick a team above, then select players and click <em>Add Selected → Team</em>.</div>
+          </div>
+        </div>
+
+        <div id="rostersAdmin" class="grid"></div>
+      </div>
+    </details>
+
+    <details class="details">
+      <summary>Bracket Builder & Results</summary>
+      <div class="body">
+        <div class="row" style="margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap">
+          <div class="list" style="max-width:420px">
+            <h4>Available Teams</h4>
+            <ul id="teamsUL"></ul>
+          </div>
+          <div class="list">
+            <h4>Bracket Order (slots)</h4>
+            <ul id="slotsUL"></ul>
+          </div>
+          <div class="list" style="max-width:320px">
+            <h4>Actions</h4>
+            <ul>
+              <li><button id="addSelected" class="ghostbtn">Add →</button> <span class="note">Add selected team to slots</span></li>
+              <li><button id="removeSelected" class="ghostbtn">← Remove</button> <span class="note">Remove selected slot</span></li>
+              <li><button id="moveUp" class="ghostbtn">Move Up</button> <button id="moveDown" class="ghostbtn">Move Down</button></li>
+              <li><button id="autoAlpha" class="ghostbtn">Auto A→Z</button> <button id="autoShuffle" class="ghostbtn">Shuffle</button></li>
+              <li><button id="clearSlots" class="ghostbtn">Clear Slots</button> <span class="note">Empties bracket slots</span></li>
+              <li><button id="saveSlots" class="ghostbtn">Save Slots</button></li>
+              <li><button id="saveTeamsAndSlots" class="ghostbtn">Save Teams & Slots</button> <span class="note">Quick save rosters + slots</span></li>
+              <li><button id="resetResults" class="ghostbtn">Reset All Results</button></li>
+              <li><button id="toggleSafety" class="ghostbtn">Safety Lock: On</button> <span class="note">Prevents deletions</span></li>
+              <li><span class="note">Tip: Click a team name on a match to set winner; Alt-click to clear.</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="panel" style="margin-top:16px">
+    <h2>Team Rosters</h2>
+    <div id="rostersPublic" class="grid"></div>
+  </section>
+
+<script>
+// config
+const firebaseConfig={apiKey:"AIzaSyDzpqLZLQf5zss4QQTREQcMAIUmdWJ1BBg",authDomain:"eft-sherpa-bracket-8f95c.firebaseapp.com",projectId:"eft-sherpa-bracket-8f95c",storageBucket:"eft-sherpa-bracket-8f95c.firebasestorage.app",messagingSenderId:"529705000630",appId:"1:529705000630:web:f8f627ca719d35ac8b9017"};
+const DOC={col:"brackets",id:"eft-sherpa-hub"};
+
+// init
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(()=>{});
+
+// players
+const playersConfig={apiKey:"AIzaSyDZPD8nUaLXmKbosAVnzs3btqf-8KDGTas",authDomain:"eft-sherpa-hub.firebaseapp.com",projectId:"eft-sherpa-hub",storageBucket:"eft-sherpa-hub.appspot.com",messagingSenderId:"831895286596",appId:"1:831895286596:web:f381dc5e199c0e27bd9d11"};
+const playersApp=firebase.initializeApp(playersConfig,"players");
+function getSignupsQuery(){return playersApp.firestore().collection('signups').orderBy('createdAt','desc');}
+
+// state
+let CONFIG={slots:[],rosters:{},r1_times:[],series:[],results:{}};
+let isAdmin=false;
+let viewAsPublic=false;
+let ALL_PLAYERS=[]; let FILTERED_PLAYERS=[]; let playerQueryText='';
+
+// dom
+const el=(h)=>{const d=document.createElement('div');d.innerHTML=h.trim();return d.firstChild;};
+const $=(s,r=document)=>r.querySelector(s);
+const printDbg=()=>{};
+function normalizedHandle(raw){const v=String(raw||'').trim();return(v&&!v.startsWith('@')&&!v.includes('#')&&/^[\w.\-]{2,32}$/.test(v))?'@'+v:v;}
+
+// tabs
+(function(){const pairs=[['t-wb','p-wb'],['t-lb','p-lb'],['t-gf','p-gf']];pairs.forEach(([t,p],i)=>{const tb=$('#'+t),pn=$('#'+p);tb.onclick=()=>pairs.forEach(([tt,pp])=>{$('#'+tt).setAttribute('aria-selected',String(tt===t));$('#'+pp).setAttribute('aria-hidden',String(pp!==p));});if(i===0){tb.setAttribute('aria-selected','true');pn.setAttribute('aria-hidden','false');}});})();
+
+// Auth
+const authBadge=$('#authBadge'), btnIn=$('#btnSign'), btnOut=$('#btnOut'), adminBlock=$('#admin'), btnView=$('#btnViewPublic');
+
+auth.onAuthStateChanged(u=>{
+  isAdmin = !!u;
+  const signedIn = !!u;
+
+ // label
+  authBadge.textContent = signedIn ? `Signed in as ${u.email}` : '';
+
+ // buttons
+  btnIn.style.display   = signedIn ? 'none'         : 'inline-block';
+  btnOut.style.display  = signedIn ? 'inline-block' : 'none';
+  btnView.style.display = signedIn ? 'inline-block' : 'none';
+
+ // admin area
+  adminBlock.style.display = (signedIn && !viewAsPublic) ? '' : 'none';
+
+  drawAll();
+});
+
+btnIn.onclick = async () => {
+  const p = new firebase.auth.GoogleAuthProvider();
+  try { await auth.signInWithPopup(p); }
+  catch(e){ if(e?.code==='auth/popup-blocked'){ await auth.signInWithRedirect(p); } else { alert(e.message); } }
+};
+
+btnOut.onclick = async () => {
+  try { await auth.signOut(); }
+  catch(e){ alert(e.message); }
+};
+
+
+// safety
+const btnToggleSafety=document.getElementById('toggleSafety');
+const _params=new URLSearchParams(location.search);
+let SAFETY={locked:(_params.get('lock')==='1')||(localStorage.getItem('safety.locked')==='1'),requireWord:'DELETE'};
+function updateSafetyUI(){if(!btnToggleSafety) return;btnToggleSafety.textContent=`Safety Lock: ${SAFETY.locked?'On':'Off'}`;btnToggleSafety.setAttribute('aria-pressed',String(!SAFETY.locked));}
+function setLocked(v){SAFETY.locked=!!v;localStorage.setItem('safety.locked',v?'1':'0');updateSafetyUI();}
+btnToggleSafety?.addEventListener('click',()=>setLocked(!SAFETY.locked));
+function typedConfirm(msg,word=SAFETY.requireWord){const v=prompt(`${msg}\n\nType ${word} to confirm:`,'');return v===word;}
+updateSafetyUI();
+
+// math
+const MAX_TEAMS=16,toPow2=n=>{let p=1;while(p<n)p<<=1;return p;};
+function normalizeSlots(slotsIn){const clean=(slotsIn||[]).map(s=>(s||'').trim()).filter(Boolean);if(clean.length<2)return[];if(clean.length%2===1)clean.push('BYE');const target=Math.min(toPow2(clean.length),MAX_TEAMS);while(clean.length<target)clean.push('BYE');return clean.slice(0,target);}
+function parseScore(s){if(!s)return null;const m=String(s).match(/^\s*(\d+)\s*[-:x]\s*(\d+)\s*$/i);if(!m)return null;return{w:+m[1],l:+m[2]};}
+function buildWB(slots){const rounds=[];const r0=[];for(let i=0;i<slots.length;i+=2){r0.push({key:`wb:r0:m${i/2}`,a:{t:'TEAM',name:slots[i]},b:{t:'TEAM',name:slots[i+1]}});}rounds.push(r0);while(rounds.at(-1).length>1){const prev=rounds.at(-1),cur=[];for(let i=0;i<prev.length;i+=2){cur.push({key:`wb:r${rounds.length}:m${i/2}`,a:{t:'WBW',r:rounds.length-1,m:i},b:{t:'WBW',r:rounds.length-1,m:i+1}});}rounds.push(cur);}return rounds;}
+function winnerForKey(res,key){return res?.[key]?.winner||null;}
+function scoreForKey(res,key){return res?.[key]?.score||"";}
+function resolveName(wb,res,side){if(side.t==='TEAM')return side.name;const prev=wb[side.r][side.m];return winnerForKey(res,prev.key)||'TBD';}
+function autoPreseedByesWB(wb){const r={...(CONFIG.results||{})};wb.forEach(round=>round.forEach(m=>{const a=m.a.t==='TEAM'?m.a.name:null;const b=m.b.t==='TEAM'?m.b.name:null;if(a==='BYE'&&b&&b!=='BYE')r[m.key]={winner:b};if(b==='BYE'&&a&&a!=='BYE')r[m.key]={winner:a};if(a==='BYE'&&b==='BYE')r[m.key]={winner:'BYE'};}));return r;}
+function buildLBFromWB(wb,res){const lbRounds=[];wb.forEach((round,ri)=>{if(ri===wb.length-1)return;const lb=[];round.forEach((m,mi)=>{const key=`lb:r${ri}:m${mi}`;const aName=resolveName(wb,res,m.a);const bName=resolveName(wb,res,m.b);const win=winnerForKey(res,m.key);let loser='TBD';if(win&&(aName!=='TBD'&&bName!=='TBD')){loser=(win===aName)?bName:aName;}lb.push({key,a:{t:'TEAM',name:loser},b:{t:'TEAM',name:'BYE'}});});lbRounds.push(lb);});lbRounds.forEach((r,i)=>{const names=r.map(x=>x.a.name).filter(Boolean);while(names.length%2)names.push('BYE');const normalized=[];for(let j=0;j<names.length;j+=2){normalized.push({key:`lb:r${i}:m${j/2}`,a:{t:'TEAM',name:names[j]},b:{t:'TEAM',name:names[j+1]}});}lbRounds[i]=normalized;});const out=[...(lbRounds.length?[lbRounds[0]]:[])];while(out.at(-1)&&out.at(-1).length>1){const prev=out.at(-1),cur=[];for(let i=0;i<prev.length;i+=2){cur.push({key:`lb:r${out.length}:m${i/2}`,a:{t:'LBW',r:out.length-1,m:i},b:{t:'LBW',r:out.length-1,m:i+1}});}out.push(cur);}return out;}
+function resolveNameLB(lb,res,side){if(side.t==='TEAM')return side.name;const prev=lb[side.r][side.m];return winnerForKey(res,prev.key)||'TBD';}
+
+// render
+function renderBracket({hostCols,svg,rounds,results,keyPrefix,editable}){hostCols.innerHTML='';if(svg)svg.innerHTML='';if(!rounds.length){hostCols.appendChild(el(`<div class="note">Nothing to show yet.</div>`));return;}
+  rounds.forEach((round,ri)=>{const col=el(`<div class="round"><div class="round-title">ROUND ${ri+1}</div><div class="stack"></div></div>`);const stack=col.querySelector('.stack');
+    round.forEach((m)=>{const key=m.key;const aName=keyPrefix==='wb'?resolveName(rounds,results,m.a):resolveNameLB(rounds,results,m.a);const bName=keyPrefix==='wb'?resolveName(rounds,results,m.b):resolveNameLB(rounds,results,m.b);const win=winnerForKey(results,key);const score=scoreForKey(results,key);const ps=parseScore(score);
+      let aBadge='',bBadge='';if(ps&&win){if(win===aName){aBadge=ps.w;bBadge=ps.l;}else if(win===bName){aBadge=ps.l;bBadge=ps.w;}}else{aBadge=(win===aName)?'WIN':'';bBadge=(win===bName)?'WIN':'';}
+      const card=el(`<div class="match" data-key="${key}">
+        <div class="slot ${aName==='BYE'?'bye':''} ${editable?'clickable':''}">
+          <div class="name">${aName}</div>
+          <span class="winnerTag ${win===aName?'win':''}">${aBadge}</span>
+        </div>
+        <div class="slot ${bName==='BYE'?'bye':''} ${editable?'clickable':''}">
+          <div class="name">${bName}</div>
+          <span class="winnerTag ${win===bName?'win':''}">${bBadge}</span>
+        </div>
+      </div>`);
+      if(editable){const [slotA,slotB]=card.querySelectorAll('.slot');const setWinner=async(name)=>{if(!name||name==='BYE'||name==='TBD')return;const r=CONFIG.results={...(CONFIG.results||{})};const s=window.prompt('Score (optional, e.g. 2-1):',r[key]?.score||'');r[key]={winner:name,score:(s||'').trim()||undefined};drawAll();};const clearWinner=()=>{const r=CONFIG.results={...(CONFIG.results||{})};delete r[key];drawAll();};slotA.addEventListener('click',(e)=>e.altKey?clearWinner():setWinner(aName));slotB.addEventListener('click',(e)=>e.altKey?clearWinner():setWinner(bName));}
+      stack.appendChild(card);
+    });
+    hostCols.appendChild(col);
+  });
+  positionNextRounds(hostCols);requestAnimationFrame(()=>drawLines(hostCols,svg));
+}
+function renderGrandFinal({host,wb,lb,results,editable}){host.innerHTML='';const wbChamp=wb.length?(winnerForKey(results,wb.at(-1).at(0).key)||'WB Champion'):'WB Champion';const lbChamp=lb.length?(winnerForKey(results,lb.at(-1)?.at(0)?.key)||'LB Champion'):'LB Champion';const key='gf:m0';const gfRes=results?.[key]||{};const win=gfRes.winner||null;const score=gfRes.score||'';
+  const wrap=el(`<div class="gf-box"><div class="gf-title">Grand Final</div><div class="gf-row">
+      <div class="gf-team ${editable?'clickable':''} ${win===wbChamp?'win':''}" data-side="A"><span>${wbChamp}</span></div>
+      <span class="gf-vs">VS</span>
+      <div class="gf-team ${editable?'clickable':''} ${win===lbChamp?'win':''}" data-side="B"><span>${lbChamp}</span></div>
+      <div class="gf-score ${editable?'clickable':''}" data-role="score">${score || '— : —'}</div>
+    </div></div>`);
+  host.appendChild(wrap);
+  if(!editable)return;
+  const teamA=wrap.querySelector('.gf-team[data-side="A"]');const teamB=wrap.querySelector('.gf-team[data-side="B"]');const scoreEl=wrap.querySelector('.gf-score');
+  const setWinner=(name)=>{if(!name||name==='WB Champion'||name==='LB Champion')return;const r=CONFIG.results={...(CONFIG.results||{})};const cur=r[key]||{};r[key]={winner:name,score:cur.score};drawAll();};
+  const clearWinner=()=>{const r=CONFIG.results={...(CONFIG.results||{})};const cur=r[key]||{};if(r[key])r[key]={score:cur.score};drawAll();};
+  const editScore=()=>{const r=CONFIG.results={...(CONFIG.results||{})};const cur=r[key]||{};const s=window.prompt('Grand Final score (e.g., 3-1):',cur.score||'');if(s===null)return;const trimmed=(s||'').trim();if(trimmed){r[key]={winner:cur.winner,score:trimmed};}else{r[key]=cur.winner?{winner:cur.winner}:{ };}drawAll();};
+  teamA.addEventListener('click',(e)=>e.altKey?clearWinner():setWinner(wbChamp));
+  teamB.addEventListener('click',(e)=>e.altKey?clearWinner():setWinner(lbChamp));
+  scoreEl.addEventListener('click',editScore);
+}
+
+// layout
+function positionNextRounds(columnsRoot){if(!columnsRoot)return;columnsRoot.querySelectorAll('.match').forEach(m=>m.style.marginTop='');const roundsEls=[...columnsRoot.querySelectorAll('.round')];for(let r=1;r<roundsEls.length;r++){const prev=[...roundsEls[r-1].querySelectorAll('.match')];const cur=[...roundsEls[r].querySelectorAll('.match')];cur.forEach((mEl,i)=>{const aPrev=prev[2*i],bPrev=prev[2*i+1];if(!aPrev||!bPrev)return;const aR=aPrev.getBoundingClientRect(),bR=bPrev.getBoundingClientRect(),mR=mEl.getBoundingClientRect();const target=(aR.top+aR.height/2+bR.top+bR.height/2)/2;const delta=target-(mR.top+mR.height/2);const curMT=parseFloat(getComputedStyle(mEl).marginTop)||0;mEl.style.marginTop=(curMT+delta)+'px';});}}
+function drawLines(columnsRoot,svg){if(!svg||!columnsRoot)return;const w=columnsRoot.scrollWidth,h=columnsRoot.scrollHeight;svg.setAttribute('width',w);svg.setAttribute('height',h);svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.innerHTML='';const rootRect=columnsRoot.getBoundingClientRect();const R=n=>n.getBoundingClientRect();const centerRight=n=>{const r=R(n);return{x:r.right-rootRect.left,y:r.top-rootRect.top+r.height/2};};const centerLeft=n=>{const r=R(n);return{x:r.left-rootRect.left,y:r.top-rootRect.top+r.height/2};};
+  const roundsEls=[...columnsRoot.querySelectorAll('.round')];for(let r=1;r<roundsEls.length;r++){const prev=[...roundsEls[r-1].querySelectorAll('.match')];const cur=[...roundsEls[r].querySelectorAll('.match')];
+    cur.forEach((mEl,i)=>{const aPrev=prev[2*i],bPrev=prev[2*i+1];if(!aPrev||!bPrev)return;const slots=mEl.querySelectorAll('.slot');if(slots.length<2)return;const aFrom=centerRight(aPrev);const bFrom=centerRight(bPrev);const aTo=centerLeft(slots[0]);const bTo=centerLeft(slots[1]);const leftOfCur=R(mEl).left-rootRect.left;const rightOfPrev=R(aPrev).right-rootRect.left;const spineX=Math.round((leftOfCur+rightOfPrev)/2);const leavePrev=6,enterCur=6;
+      const mk=(p,t)=>[`M ${p.x} ${p.y}`,`L ${p.x+leavePrev} ${p.y}`,`L ${spineX} ${p.y}`,`L ${spineX} ${t.y}`,`L ${t.x-enterCur} ${t.y}`].join(' ');
+      const pa=document.createElementNS('http://www.w3.org/2000/svg','path');pa.setAttribute('d',mk(aFrom,aTo));pa.setAttribute('class','path');svg.appendChild(pa);
+      const pb=document.createElementNS('http://www.w3.org/2000/svg','path');pb.setAttribute('d',mk(bFrom,bTo));pb.setAttribute('class','path');svg.appendChild(pb);
+    });
+  }
+}
+
+// rosters (public)
+function renderRostersPublic(cfg){const grid=$('#rostersPublic');grid.innerHTML='';const teams=Object.keys(cfg.rosters||{});if(!teams.length){grid.appendChild(el(`<div class="note">No rosters yet.</div>`));return;}teams.forEach(team=>{const card=el(`<div class="roster-card"><h3>${team}</h3><ul></ul></div>`),ul=card.querySelector('ul');(cfg.rosters[team]||[]).forEach(p=>ul.appendChild(el(`<li>${p}</li>`)));grid.appendChild(card);});}
+
+// admin refs
+const teamPick=$('#teamPick'),newTeam=$('#newTeam'),playerName=$('#playerName'),rostersAdmin=$('#rostersAdmin');
+
+// cards (admin)
+function rosterCardHTML(team,players){
+  return `
+  <div class="roster-card" data-team="${team}">
+    <div class="team-actions">
+      <button class="iconbtn" title="Rename team" data-action="rename" aria-label="Rename ${team}">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 20h9" stroke-width="2" stroke-linecap="round"/><path d="M16.5 3.5l4 4L8 20H4v-4L16.5 3.5z" stroke-width="2" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="iconbtn" title="Delete team" data-action="delete" aria-label="Delete ${team}">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 6h18" stroke-width="2" stroke-linecap="round"/><path d="M8 6v-2a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke-width="2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke-width="2"/><path d="M10 11v6M14 11v6" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <h3>${team}</h3>
+    <ul>${players.map(p=>`<li>${p}</li>`).join('')}</ul>
+  </div>`;
+}
+
+// admin list
+function refreshRosterAdmin(){
+  const teams=Object.keys(CONFIG.rosters||{}).sort((a,b)=>a.localeCompare(b));
+  if(teamPick) teamPick.innerHTML=`<option value="">— Select team —</option>`+teams.map(t=>`<option>${t}</option>`).join('');
+  if(rostersAdmin){
+    rostersAdmin.innerHTML='';
+    teams.forEach(team=>{
+      rostersAdmin.appendChild(el(rosterCardHTML(team, CONFIG.rosters[team]||[])));
+    });
+  }
+}
+
+// admin actions
+rostersAdmin?.addEventListener('click',async(e)=>{
+  if(!(isAdmin&&!viewAsPublic)) return;
+  const btn=e.target.closest('.iconbtn'); if(!btn) return;
+  const card=btn.closest('.roster-card'); if(!card) return;
+  const team=card.getAttribute('data-team'); if(!team) return;
+
+  if(btn.dataset.action==='delete'){
+    if(SAFETY.locked){alert('Safety Lock is ON.');return;}
+    if(!confirm(`Delete team "${team}" from this tournament?`)) return;
+    if(!typedConfirm(`This removes the team key and clears it from slots.\nPlayers/signups are NOT deleted.\n\nType ${SAFETY.requireWord} to confirm:`,'DELETE')) return;
+
+ // local
+    delete CONFIG.rosters[team];
+    CONFIG.slots=(CONFIG.slots||[]).filter(s=>s!==team);
+
+ // cloud (only team key + slots)
+    try{
+      await db.collection(DOC.col).doc(DOC.id).update({
+        [`config.rosters.${team}`]: firebase.firestore.FieldValue.delete(),
+        'config.slots': CONFIG.slots,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        version: firebase.firestore.FieldValue.increment(1)
+      });
+      syncAdminLists();
+      alert(`Team "${team}" deleted.`);
+    }catch(err){
+      alert('Cloud delete failed: '+(err?.message||err));
+    }
+    return;
+  }
+
+  if(btn.dataset.action==='rename'){
+    const next=prompt('New team name:',team);
+    if(!next||next===team) return;
+    if(CONFIG.rosters[next]){ alert('A team with that name already exists.'); return; }
+
+ // local
+    CONFIG.rosters[next]=CONFIG.rosters[team];
+    delete CONFIG.rosters[team];
+    CONFIG.slots=(CONFIG.slots||[]).map(s=>s===team?next:s);
+
+ // cloud (set new key, delete old, update slots)
+    try{
+      await db.collection(DOC.col).doc(DOC.id).update({
+        [`config.rosters.${next}`]: CONFIG.rosters[next],
+        [`config.rosters.${team}`]: firebase.firestore.FieldValue.delete(),
+        'config.slots': CONFIG.slots,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        version: firebase.firestore.FieldValue.increment(1)
+      });
+      syncAdminLists();
+      alert(`Team renamed to "${next}".`);
+    }catch(err){
+      alert('Cloud rename failed: '+(err?.message||err));
+    }
+    return;
+  }
+});
+
+// team inputs
+const teamsUL=$('#teamsUL'),slotsUL=$('#slotsUL');
+function refreshSlotsUI(){if(!teamsUL||!slotsUL)return;const teams=Object.keys(CONFIG.rosters||{}).sort((a,b)=>a.localeCompare(b));teamsUL.innerHTML=teams.map(t=>`<li data-team="${t}"><input type="radio" name="pickTeam"/><span>${t}</span></li>`).join('');const slots=(CONFIG.slots||[]);slotsUL.innerHTML=slots.map((t,i)=>`<li data-index="${i}"><input type="radio" name="pickSlot"/><span>${i+1}.</span><span>${t}</span></li>`).join('');}
+function pickTeam(){if(!teamsUL)return null;const r=teamsUL.querySelector('input[name="pickTeam"]:checked');return r?r.parentElement.dataset.team:null;}
+function pickSlot(){if(!slotsUL)return -1;const r=slotsUL.querySelector('input[name="pickSlot"]:checked');return r?parseInt(r.parentElement.dataset.index,10):-1;}
+$('#addTeam')?.addEventListener('click',()=>{const name=(newTeam.value||'').trim();if(!name)return alert('Enter a team name.');CONFIG.rosters=CONFIG.rosters||{};if(CONFIG.rosters[name])return alert('Team already exists.');CONFIG.rosters[name]=[];newTeam.value='';syncAdminLists();});
+$('#addPlayer')?.addEventListener('click',()=>{const team=teamPick.value;if(!team)return alert('Pick a team.');const p=(playerName.value||'').trim();if(!p)return alert('Enter a player.');CONFIG.rosters[team].push(p);playerName.value='';syncAdminLists();});
+document.getElementById('saveTeam')?.addEventListener('click',()=>{const team=teamPick.value;if(!team)return alert('Pick a team.');if(!CONFIG.rosters?.[team])return alert('That team has no roster yet.'); saveToCloud(`Saved roster for "${team}".`);});
+document.getElementById('saveRosters')?.addEventListener('click',()=>saveToCloud('Rosters saved.'));
+
+// list actions
+$('#addSelected')?.addEventListener('click',()=>{const t=pickTeam();if(!t)return alert('Select a team.');(CONFIG.slots=CONFIG.slots||[]).push(t);refreshSlotsUI();drawAll();});
+$('#removeSelected')?.addEventListener('click',()=>{const i=pickSlot();if(i<0)return alert('Select a slot.');CONFIG.slots.splice(i,1);refreshSlotsUI();drawAll();});
+$('#moveUp')?.addEventListener('click',()=>{const i=pickSlot();if(i>0){const s=CONFIG.slots;[s[i-1],s[i]]=[s[i],s[i-1]];refreshSlotsUI();slotsUL.querySelectorAll('input')[i-1].checked=true;drawAll();}});
+$('#moveDown')?.addEventListener('click',()=>{const i=pickSlot();const s=CONFIG.slots||[];if(i>=0&&i<s.length-1){[s[i+1],s[i]]=[s[i],s[i+1]];refreshSlotsUI();slotsUL.querySelectorAll('input')[i+1].checked=true;drawAll();}});
+$('#autoAlpha')?.addEventListener('click',()=>{CONFIG.slots=Object.keys(CONFIG.rosters||{}).sort((a,b)=>a.localeCompare(b));refreshSlotsUI();drawAll();});
+$('#autoShuffle')?.addEventListener('click',()=>{const arr=Object.keys(CONFIG.rosters||{});for(let i=arr.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[arr[i],arr[j]]=[arr[j],arr[i]];}CONFIG.slots=arr;refreshSlotsUI();drawAll();});
+document.getElementById('clearSlots')?.addEventListener('click',()=>{if(SAFETY.locked)return alert('Safety Lock is ON.');if(!confirm('Clear ALL bracket slots?'))return;if(!typedConfirm('This will empty the bracket slots for this tournament.','DELETE'))return;CONFIG.slots=[];refreshSlotsUI();drawAll();saveToCloud('Slots cleared.');});
+document.getElementById('saveSlots')?.addEventListener('click',()=>saveToCloud('Slots saved.'));
+document.getElementById('saveTeamsAndSlots')?.addEventListener('click',()=>saveToCloud('Teams & Slots saved.'));
+document.getElementById('resetResults')?.addEventListener('click',()=>{if(SAFETY.locked)return alert('Safety Lock is ON.');if(!confirm('Reset ALL winners and scores?'))return;if(!typedConfirm('This will clear all match winners and scores.','DELETE'))return;CONFIG.results={};drawAll();saveToCloud('Results cleared.');});
+
+// players (read-only)
+const playersUL=document.getElementById('playersUL');
+const playerSearch=document.getElementById('playerSearch');
+const selectAllCheckbox=document.getElementById('playersSelectAll');
+const addPlayersFromListBtn=document.getElementById('addPlayersFromList');
+const teamPick2=document.getElementById('teamPick2');
+function renderPlayersList(){playersUL.innerHTML='';const list=(playerQueryText?FILTERED_PLAYERS:ALL_PLAYERS);if(!list.length){playersUL.innerHTML='<li style="padding:10px;color:#9aa3af">No players found.</li>';return;}list.forEach((p,i)=>{const li=document.createElement('li');li.setAttribute('data-index',String(i));li.style.cursor='pointer';li.innerHTML=`<input type="checkbox" name="pickPlayer" data-index="${i}"/><div style="display:flex;gap:8px;align-items:center;min-width:0"><div style="width:28px;height:28px;border-radius:8px;background:#111;display:flex;align-items:center;justify-content:center;font-size:12px;color:#e5e5e5">${(String(p.name||'??').trim()||'??').slice(0,1).toUpperCase()}</div><div style="display:grid;min-width:0"><strong style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.name||'—'}</strong><span class="note" style="font-size:12px;color:#9aa3af">${normalizedHandle(p.discord_id)||''}</span></div></div>`;playersUL.appendChild(li);});if(selectAllCheckbox)selectAllCheckbox.checked=false;}
+function applyPlayerFilter(){const q=(playerQueryText||'').toLowerCase();if(!q){FILTERED_PLAYERS=[];}else{FILTERED_PLAYERS=ALL_PLAYERS.filter(p=>{const hay=((p.name||'')+' '+normalizedHandle(p.discord_id)).toLowerCase();return hay.includes(q);});}renderPlayersList();}
+function getSelectedPlayers(){const base=playerQueryText?FILTERED_PLAYERS:ALL_PLAYERS;const checks=playersUL.querySelectorAll('input[name="pickPlayer"]:checked');const out=[];checks.forEach(ch=>{const idx=Number(ch.getAttribute('data-index'));if(!Number.isNaN(idx)&&base[idx])out.push(base[idx]);});return out;}
+playerSearch?.addEventListener('input',(e)=>{clearTimeout(playerSearch._t);playerSearch._t=setTimeout(()=>{playerQueryText=e.target.value||'';applyPlayerFilter();},100);});
+selectAllCheckbox?.addEventListener('change',(e)=>{const checks=playersUL.querySelectorAll('input[name="pickPlayer"]');checks.forEach(ch=>ch.checked=e.target.checked);});
+addPlayersFromListBtn?.addEventListener('click',()=>{const team=teamPick2.value||teamPick.value;if(!team)return alert('Pick a team first.');const picks=getSelectedPlayers();if(!picks.length)return alert('Select one or more players.');CONFIG.rosters=CONFIG.rosters||{};CONFIG.rosters[team]=CONFIG.rosters[team]||[];const existing=new Set(CONFIG.rosters[team].map(n=>String(n)));let added=0,skipped=0;picks.forEach(p=>{const pname=String(p.name||'').trim();if(!pname){skipped++;return;}if(existing.has(pname)){skipped++;return;}CONFIG.rosters[team].push(pname);existing.add(pname);added++;});playersUL.querySelectorAll('input[name="pickPlayer"]:checked').forEach(ch=>ch.checked=false);if(selectAllCheckbox)selectAllCheckbox.checked=false;syncAdminLists();alert(`Added ${added} player(s) to "${team}"${skipped?` (skipped ${skipped})`:''}.`);});
+function syncTeamPickMirror(){const teams=Object.keys(CONFIG.rosters||{}).sort((a,b)=>a.localeCompare(b));teamPick2.innerHTML=`<option value="">— Select team —</option>`+teams.map(t=>`<option>${t}</option>`).join('');if(teamPick&&teamPick.value){teamPick2.value=teamPick.value;}}
+teamPick?.addEventListener('change',()=>{syncTeamPickMirror();});
+function subscribePlayers(){getSignupsQuery().onSnapshot((snap)=>{ALL_PLAYERS=[];snap.forEach(s=>ALL_PLAYERS.push(s.data()));applyPlayerFilter();},(err)=>{console.warn('players error:',err);ALL_PLAYERS=[];applyPlayerFilter();});}
+
+// save
+function saveToCloud(msg){if(!(isAdmin&&!viewAsPublic))return alert('Sign in (and exit “View as public”) to save.');db.collection(DOC.col).doc(DOC.id).set({config:CONFIG,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),version:firebase.firestore.FieldValue.increment(1)},{merge:true}).then(()=>alert(msg)).catch(e=>{alert('Save failed: '+e.message);});}
+function syncAdminLists(){refreshRosterAdmin();refreshSlotsUI();syncTeamPickMirror();drawAll();}
+
+// live
+db.collection(DOC.col).doc(DOC.id).onSnapshot(snap=>{if(!snap.exists)return;const x=snap.data().config||{};CONFIG={slots:x.slots||[],rosters:x.rosters||{},r1_times:x.r1_times||[],series:x.series||[],results:x.results||{}};syncAdminLists();});
+
+// draw
+function drawAll(){const slots=normalizeSlots(CONFIG.slots);const wb=slots.length?buildWB(slots):[];const resultsMerged={...autoPreseedByesWB(wb),...(CONFIG.results||{})};
+  renderBracket({hostCols:$('#wbCols'),svg:$('#wbLines'),rounds:wb,results:resultsMerged,keyPrefix:'wb',editable:isAdmin&&!viewAsPublic});
+  const lb=wb.length?buildLBFromWB(wb,resultsMerged):[];
+  renderBracket({hostCols:$('#lbCols'),svg:$('#lbLines'),rounds:lb,results:resultsMerged,keyPrefix:'lb',editable:isAdmin&&!viewAsPublic});
+  renderGrandFinal({host:$('#gfRoot'),wb,lb,results:resultsMerged,editable:isAdmin&&!viewAsPublic});
+  renderRostersPublic(CONFIG);
+}
+
+// redraw
+const redraw=()=>{positionNextRounds($('#wbCols'));drawLines($('#wbCols'),$('#wbLines'));positionNextRounds($('#lbCols'));drawLines($('#lbCols'),$('#lbLines'));};
+window.addEventListener('resize',redraw);
+new MutationObserver(redraw).observe($('#wbCols'),{childList:true,subtree:true});
+new MutationObserver(redraw).observe($('#lbCols'),{childList:true,subtree:true});
+
+// reveal
+document.addEventListener('keydown',(e)=>{if(e.shiftKey&&e.key.toLowerCase()==='s'){const b=document.getElementById('btnSign');if(!b||b.style.display==='none')return;b.classList.add('reveal');clearTimeout(b._hideTimer);b._hideTimer=setTimeout(()=>b.classList.remove('reveal'),6000);}});
+(function(){const b=document.getElementById('btnSign');if(!b)return;b.addEventListener('mouseenter',()=>clearTimeout(b._hideTimer));b.addEventListener('mouseleave',()=>{clearTimeout(b._hideTimer);b._hideTimer=setTimeout(()=>b.classList.remove('reveal'),1500);});})();
+(function(){const b=document.getElementById('btnSign');if(b&&location.hash==='#admin')b.classList.add('reveal');})();
+
+// boot
+printDbg('');syncAdminLists();subscribePlayers();
+</script>
+</div>
+</body>
+</html>

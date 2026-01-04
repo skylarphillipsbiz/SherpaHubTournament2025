@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>EFT Sherpa Hub — Teams</title>
+
+<style>
+  :root{
+    --bg:#000; --panel:#0f0f0f; --panel2:#101010; --text:#f2f2f2; --muted:#9aa3af; --border:#1a1a1a; --accent:#30f470;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:auto;padding:28px 16px 64px}
+  h1{margin:0 0 8px;font-size:clamp(24px,3vw,36px);font-weight:900}
+  .sub{color:var(--muted);margin:0 0 18px}
+
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:10px 0 16px}
+  .left, .right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .search{position:relative;min-width:240px;max-width:360px;flex:1}
+  .search input{width:100%;padding:12px 14px 12px 36px;border-radius:12px;border:1px solid var(--border);background:var(--panel);color:var(--text)}
+  .search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.7}
+  select, button{background:#0e0e0e;border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:12px;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.6;cursor:not-allowed}
+
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .card{background:linear-gradient(180deg,#141414,#0f0f0f);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;flex-direction:column;min-height:160px}
+  .card:hover{border-color:#2a2a2a}
+  .head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+  .team{font-weight:900;font-size:16px;line-height:1.2;word-break:break-word}
+  .count{font-size:12px;color:#cbd5e1;border:1px solid #262626;background:#0f0f0f;padding:4px 8px;border-radius:999px}
+  .players{list-style:none;margin:0;padding:0;display:grid;gap:6px;margin-top:6px}
+  .players li{background:var(--panel2);border:1px solid #1a1a1a;border-radius:10px;padding:8px 10px;font-size:13px}
+  .empty{color:#9aa3af;text-align:center;border:1px dashed #242424;border-radius:16px;padding:18px;background:#0f0f0f}
+
+  /* sticky footer info */
+  .foot{margin-top:16px;color:#9aa3af;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Teams</h1>
+
+  <div class="controls">
+    <div class="left">
+      <label class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" stroke="#9ca3af" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="Search teams or players…">
+      </label>
+    </div>
+    <div class="right">
+      <select id="sort">
+        <option value="az">Sort: A → Z</option>
+        <option value="za">Sort: Z → A</option>
+        <option value="size-desc">Sort: Largest first</option>
+        <option value="size-asc">Sort: Smallest first</option>
+      </select>
+      <button id="refresh">Refresh</button>
+    </div>
+  </div>
+
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="empty" style="display:none">No teams yet.</div>
+
+  <div class="foot" id="meta"></div>
+</div>
+
+<!-- Firebase (compat to match your bracket page) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script>
+/* Uses the same Firebase project as the bracket page */
+const firebaseConfig = {
+  apiKey: "AIzaSyDzpqLZLQf5zss4QQTREQcMAIUmdWJ1BBg",
+  authDomain: "eft-sherpa-bracket-8f95c.firebaseapp.com",
+  projectId: "eft-sherpa-bracket-8f95c",
+  storageBucket: "eft-sherpa-bracket-8f95c.firebasestorage.app",
+  messagingSenderId: "529705000630",
+  appId: "1:529705000630:web:f8f627ca719d35ac8b9017"
+};
+const DOC = { col: "brackets", id: "eft-sherpa-hub" };
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* DOM refs */
+const grid = document.getElementById('grid');
+const empty = document.getElementById('empty');
+const meta  = document.getElementById('meta');
+const qInput= document.getElementById('q');
+const sortSel = document.getElementById('sort');
+const refreshBtn = document.getElementById('refresh');
+
+/* State */
+let ROSTERS = {};             // { TeamName: [player1, player2, ...] }
+let LIVE_UNSUB = null;
+let QUERY = '';
+let SORT = 'az';
+
+/* Helpers */
+const byAZ   = (a,b)=> a[0].localeCompare(b[0]);
+const byZA   = (a,b)=> b[0].localeCompare(a[0]);
+const bySizeD= (a,b)=> (b[1].length||0)-(a[1].length||0) || a[0].localeCompare(b[0]);
+const bySizeA= (a,b)=> (a[1].length||0)-(b[1].length||0) || a[0].localeCompare(b[0]);
+
+function applyFilterAndSort(){
+  const entries = Object.entries(ROSTERS||{});
+  const q = (QUERY||'').toLowerCase();
+
+  let list = !q ? entries : entries.filter(([team, players])=>{
+    if (team.toLowerCase().includes(q)) return true;
+    return (players||[]).some(p => String(p||'').toLowerCase().includes(q));
+  });
+
+  if (SORT==='az') list.sort(byAZ);
+  else if (SORT==='za') list.sort(byZA);
+  else if (SORT==='size-desc') list.sort(bySizeD);
+  else if (SORT==='size-asc') list.sort(bySizeA);
+
+  render(list);
+}
+
+function render(list){
+  grid.innerHTML='';
+  if (!list.length){
+    empty.style.display='block';
+    meta.textContent='';
+    return;
+  }
+  empty.style.display='none';
+
+  list.forEach(([team, players])=>{
+    const card = document.createElement('article');
+    card.className = 'card';
+
+    const head = document.createElement('div');
+    head.className = 'head';
+    head.innerHTML = `
+      <div class="team">${team}</div>
+      <span class="count">${(players||[]).length} player${(players||[]).length===1?'':'s'}</span>
+    `;
+    card.appendChild(head);
+
+    const ul = document.createElement('ul');
+    ul.className = 'players';
+    (players||[]).forEach(p=>{
+      const li = document.createElement('li');
+      li.textContent = p || '—';
+      ul.appendChild(li);
+    });
+    card.appendChild(ul);
+
+    grid.appendChild(card);
+  });
+
+  const teamCount = list.length;
+  const playerTotal = list.reduce((sum,[,ps])=> sum + (ps?.length||0), 0);
+  meta.textContent = `${teamCount} team${teamCount===1?'':'s'} · ${playerTotal} player${playerTotal===1?'':'s'} total`;
+}
+
+/* Live subscription */
+function subscribe(){
+  LIVE_UNSUB?.();
+  LIVE_UNSUB = db.collection(DOC.col).doc(DOC.id).onSnapshot(snap=>{
+    const cfg = snap.exists ? (snap.data().config || {}) : {};
+    ROSTERS = cfg.rosters || {};
+    applyFilterAndSort();
+  }, err=>{
+    console.error('Teams live load error:', err);
+    ROSTERS = {};
+    applyFilterAndSort();
+  });
+}
+
+/* Events */
+qInput.addEventListener('input', e=>{
+  clearTimeout(qInput._t);
+  qInput._t = setTimeout(()=>{ QUERY = e.target.value || ''; applyFilterAndSort(); }, 120);
+});
+sortSel.addEventListener('change', e=>{
+  SORT = e.target.value;
+  applyFilterAndSort();
+});
+refreshBtn.addEventListener('click', ()=>{
+ // re-read once (also keeps live sub)
+  db.collection(DOC.col).doc(DOC.id).get().then(s=>{
+    const cfg = s.exists ? (s.data().config || {}) : {};
+    ROSTERS = cfg.rosters || {};
+    applyFilterAndSort();
+  }).catch(err=> console.warn('Manual refresh failed:', err));
+});
+
+/* Boot */
+subscribe();
+</script>
+</body>
+</html>

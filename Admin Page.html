@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<meta name="robots" content="noindex, nofollow"/>
+<title>Admin · Players & Broadcasts</title>
+<style>
+  :root{
+    --bg:#000; --panel:#0f0f0f; --panel2:#0b0b0b; --text:#f2f2f2; --muted:#9aa3af; --border:#1a1a1a; --focus:#30f470;
+    --ok:#22c55e; --warn:#f59e0b; --err:#ef4444;
+    --sherpa:#30f470; --emissary:#7b5bca; --helpful:#ff7a1c; --moderator:#ff2b2b; --ticket:#e6ac79; --staff:#22d3ee;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:1100px;margin:auto;padding:24px 14px 42px;display:grid;gap:14px}
+  header{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  h1{margin:0;font-size:clamp(22px,3vw,28px)}
+  .sub{margin:0;color:var(--muted)}
+  .card{background:linear-gradient(180deg,#121212,#0f0f0f);border:1px solid var(--border);border-radius:14px;padding:12px}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  input,select,textarea{background:#0d0d0d;color:#fff;border:1px solid #1a1a1a;border-radius:10px;padding:8px 10px}
+  input:focus,select:focus,textarea:focus,button:focus{outline:2px solid var(--focus);outline-offset:1px}
+  button{background:#1b1b1b;border:1px solid #2a2a2a;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+  button.primary{background:var(--ok);color:#000;border-color:#16a34a}
+  button.warn{background:var(--warn);color:#000;border-color:#d97706}
+  button.danger{background:var(--err);color:#000;border-color:#dc2626}
+  .pill{padding:6px 10px;border-radius:999px;border:1px solid #222;background:#0e0e0e;font-size:12px;color:#9aa3af}
+  .hidden{display:none}
+
+  .tabs{display:flex;gap:8px}
+  .tab{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#0e0e0e;cursor:pointer;font-weight:800}
+  .tab[aria-selected="true"]{outline:2px solid rgba(48,244,112,.35)}
+
+  .grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .row{
+    display:flex; gap:10px; flex-wrap:wrap;
+    align-items:flex-start;
+    background:#0b0b0b;border:1px solid var(--border);
+    border-radius:12px;padding:10px; min-width:0;
+  }
+  .avatar,.avatar-fb{flex:0 0 42px;width:42px;height:42px;border-radius:10px;background:#111}
+  .avatar{object-fit:cover}
+  .avatar-fb{display:flex;align-items:center;justify-content:center;font-weight:800;color:#e5e5e5}
+  .row .info{flex:1 1 220px;min-width:180px;display:grid;gap:2px}
+  .name{font-weight:800}
+  .handle{font-size:12px;color:#9aa3af}
+  .row .name,.row .handle{white-space:normal;overflow-wrap:break-word;word-break:normal;hyphens:auto}
+  .tag{font-size:11px;border:1px solid #333;padding:2px 8px;border-radius:999px;white-space:nowrap;flex:0 1 auto}
+  .tag.sherpa{border-color:#30f470;color:#30f470}
+  .tag.emissary{border-color:#7b5bca;color:#7b5bca}
+  .tag.helpful{border-color:#ff7a1c;color:#ff7a1c}
+  .tag.moderator{border-color:#ff2b2b;color:#ff2b2b}
+  .tag.ticket{border-color:#e6ac79;color:#e6ac79}
+  .tag.staff{border-color:#22d3ee;color:#22d3ee}
+  .row .actions{margin-left:auto;display:flex;gap:8px;align-self:flex-start;flex:0 0 auto}
+  .pager{display:flex;align-items:center;gap:10px;justify-content:center}
+  .pager .info{color:#9aa3af;font-size:13px}
+
+  .bgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+  .brow{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;background:#0b0b0b;border:1px solid var(--border);border-radius:12px;padding:10px}
+  .thumb{width:56px;height:56px;border-radius:10px;object-fit:cover;background:#111}
+  .meta{display:grid;gap:4px}
+  .title{font-weight:800}
+  .dim{color:#9aa3af;font-size:12px}
+
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:14px;z-index:50}
+  .panel{max-width:780px;width:100%;background:#0f0f0f;border:1px solid #1a1a1a;border-radius:14px;padding:14px;display:grid;gap:10px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:720px){ .cols{grid-template-columns:1fr} }
+  .hint{font-size:12px;color:#9aa3af}
+  .imgbox{display:flex;align-items:center;gap:10px}
+  .imgbox img{width:64px;height:64px;border-radius:12px;object-fit:cover;background:#111;border:1px solid #222}
+
+  #p_modal .cols > .card:first-child > .bar + .bar{ margin-top:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Admin · Players & Broadcasts</h1>
+      <p class="sub">One place to manage signups and official broadcast links.</p>
+    </div>
+    <div class="pill" id="who">Signed out</div>
+  </header>
+
+  <div class="card bar">
+    <input id="email" type="email" placeholder="Email" autocomplete="username">
+    <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" class="primary">Sign In</button>
+    <button id="logoutBtn">Sign Out</button>
+    <span id="authMsg" class="pill" style="border:none;background:transparent"></span>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Admin sections">
+    <button id="tabPlayers" class="tab" role="tab" aria-selected="true">Players</button>
+    <button id="tabBroadcasts" class="tab" role="tab" aria-selected="false">Official Broadcasts</button>
+  </div>
+
+  <section id="playersSec" class="card" role="tabpanel" aria-labelledby="tabPlayers">
+    <div class="bar" style="justify-content:space-between">
+      <div class="bar" style="flex-wrap:wrap">
+        <input id="p_search" placeholder="Search name or handle…" style="min-width:220px">
+        <select id="p_role">
+          <option value="all">All roles</option>
+          <option>Sherpa</option><option>Emissary</option><option>Helpful</option>
+          <option>Ticket Handler</option><option>Moderator</option>
+          <option>Other staff (not listed)</option>
+        </select>
+        <select id="p_stream">
+          <option value="any">Any stream status</option>
+          <option value="yes">Streams: yes</option>
+          <option value="no">Streams: no</option>
+        </select>
+      </div>
+      <div class="bar">
+        <label class="pill">Per page</label>
+        <select id="p_size"><option>12</option><option>18</option><option>24</option></select>
+        <button id="p_refresh">Refresh</button>
+      </div>
+    </div>
+    <div id="p_grid" class="grid" style="margin-top:10px"></div>
+    <div class="pager" style="margin-top:8px">
+      <button id="p_prev">◀ Prev</button>
+      <div class="info" id="p_info">Page 1</div>
+      <button id="p_next">Next ▶</button>
+    </div>
+  </section>
+
+  <section id="castsSec" class="card" role="tabpanel" aria-labelledby="tabBroadcasts" hidden>
+    <div class="bar" style="justify-content:space-between">
+      <div class="bar">
+        <button id="b_new" class="primary">+ New broadcast</button>
+        <button id="b_refresh">Refresh</button>
+      </div>
+      <div class="bar">
+        <label class="pill">Sort</label>
+        <select id="b_sort">
+          <option value="order">Order (asc)</option>
+          <option value="title">Title (A–Z)</option>
+          <option value="live">Live first</option>
+        </select>
+      </div>
+    </div>
+    <div id="b_grid" class="bgrid" style="margin-top:10px"></div>
+  </section>
+</div>
+
+<!-- Player Modal -->
+<div id="p_modal" class="modal" aria-hidden="true">
+  <div class="panel" role="document">
+    <div class="bar" style="justify-content:space-between">
+      <strong id="p_title">Edit Player</strong>
+      <button id="p_close">Close</button>
+    </div>
+
+    <div class="imgbox">
+      <img id="p_avatarPrev" alt="avatar">
+      <div>
+        <input id="p_file" type="file" accept="image/*">
+        <div class="hint">PNG/JPG/WebP, &lt; 2MB</div>
+        <div class="bar" style="margin-top:6px">
+          <button id="p_upload">Upload Avatar</button>
+          <button id="p_remove" class="warn">Remove Avatar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <div class="bar"><label style="min-width:120px">Name</label><input id="f_name" maxlength="50"></div>
+        <div class="bar"><label style="min-width:120px">Discord</label><input id="f_discord" maxlength="60"></div>
+        <div class="bar">
+          <label style="min-width:120px">Role</label>
+          <select id="f_role">
+            <option>Sherpa</option><option>Emissary</option><option>Helpful</option>
+            <option>Ticket Handler</option><option>Moderator</option>
+            <option>Other staff (not listed)</option>
+          </select>
+        </div>
+
+        <div id="f_mod_wrap" class="bar hidden">
+          <label style="min-width:120px">Mod affiliation</label>
+          <select id="f_mod_org">
+            <option value="">— none —</option>
+            <option>Sherpa Hub</option>
+            <option>Official EFT Discord</option>
+            <option>Both</option>
+          </select>
+        </div>
+
+        <!-- Sherpa region -->
+        <div id="f_region_wrap" class="bar hidden">
+          <label style="min-width:120px">Sherpa region</label>
+          <select id="f_region">
+            <option value="">— none —</option>
+            <option>NA</option><option>SA</option><option>EU</option>
+            <option>AFR</option><option>AS</option><option>OCE</option>
+          </select>
+        </div>
+
+        <!-- Emissary region (NEW) -->
+        <div id="f_eregion_wrap" class="bar hidden">
+          <label style="min-width:120px">Emissary region</label>
+          <select id="f_eregion">
+            <option value="">— none —</option>
+            <option>NA</option><option>SA</option><option>EU</option>
+            <option>AFR</option><option>AS</option><option>OCE</option>
+          </select>
+        </div>
+
+        <!-- Other staff subtype -->
+        <div id="f_other_wrap" class="bar hidden">
+          <label style="min-width:120px">Staff type</label>
+          <select id="f_other_type">
+            <option value="">— none —</option>
+            <option>Retired</option>
+            <option>Support</option>
+            <option>Community</option>
+            <option>Not listed</option>
+          </select>
+        </div>
+
+        <div class="bar"><label style="min-width:120px">Role since</label><input id="f_since" type="month"></div>
+        <div class="bar"><label style="min-width:120px">Hours</label><input id="f_hours" type="number" min="0" max="50000" step="1" style="width:140px"></div>
+        <div class="bar">
+          <label style="min-width:120px">Skill</label>
+          <select id="f_skill">
+            <option>Very skilled (top tier)</option><option>Skilled</option>
+            <option>Solid / above average</option><option>Learning / developing</option>
+            <option>Not focused on PvP</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="bar">
+          <label style="min-width:120px">Streams</label>
+          <select id="f_streams"><option>yes</option><option>no</option></select>
+        </div>
+        <div class="bar"><label style="min-width:120px">Stream link</label><input id="f_link" placeholder="twitch.tv/name or full URL"></div>
+        <div class="bar" style="gap:6px">
+          <button id="p_parse">Parse Link →</button>
+          <span class="hint">Fills Twitch Channel</span>
+        </div>
+        <div class="bar"><label style="min-width:120px">Channel</label><input id="f_channel" placeholder="twitch username"></div>
+        <div class="bar">
+          <label style="min-width:120px">Featured</label>
+          <select id="f_featured"><option value="false">false</option><option value="true">true</option></select>
+        </div>
+        <div class="bar"><label style="min-width:120px">Feature order</label><input id="f_feature_order" type="number" min="0" step="1" value="0" style="width:120px"></div>
+        <div style="display:grid;gap:6px;margin-top:6px">
+          <label>Bio</label>
+          <textarea id="f_bio" maxlength="500" placeholder="Short bio"></textarea>
+        </div>
+        <div style="display:grid;gap:6px;margin-top:6px">
+          <label>Favorite / Achievement</label>
+          <textarea id="f_fav" maxlength="600" placeholder="Favorite moment"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="bar" style="justify-content:space-between">
+      <span id="p_msg" class="hint"></span>
+      <div class="bar">
+        <button id="p_soft" class="warn">Soft Delete</button>
+        <button id="p_hard" class="danger">Hard Delete</button>
+        <button id="p_save" class="primary">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Broadcast Modal -->
+<div id="b_modal" class="modal" aria-hidden="true">
+  <div class="panel" role="document">
+    <div class="bar" style="justify-content:space-between">
+      <strong id="b_title">New Broadcast</strong>
+      <button id="b_close">Close</button>
+    </div>
+
+    <div class="cols">
+      <div class="card">
+        <div class="bar"><label style="min-width:120px">Title</label><input id="bf_title" maxlength="100"></div>
+        <div class="bar"><label style="min-width:120px">Stream link</label><input id="bf_link" placeholder="twitch.tv/name or full URL"></div>
+        <div class="hint"></div>
+        <div class="bar" style="gap:6px">
+          <button id="b_parse">Parse →</button>
+          <span id="b_parseMsg" class="hint"></span>
+        </div>
+        <div class="bar"><label style="min-width:120px">Channel</label><input id="bf_channel" placeholder="twitch username"></div>
+        <div class="bar"><label style="min-width:120px">Order</label><input id="bf_order" type="number" min="0" step="1" value="0" style="width:120px"></div>
+        <div class="bar">
+          <label style="min-width:120px">Live</label>
+          <select id="bf_live"><option value="false">false</option><option value="true">true</option></select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="bar"><label style="min-width:120px">Thumbnail</label><input id="bf_file" type="file" accept="image/*"></div>
+        <img id="bf_prev" class="thumb" alt="thumb" style="width:96px;height:96px;border-radius:12px;border:1px solid #222">
+        <div style="display:grid;gap:6px;margin-top:6px">
+          <label>Description</label>
+          <textarea id="bf_desc" maxlength="800" placeholder="Optional short description…"></textarea>
+        </div>
+        <div class="hint">Images &lt; 2MB recommended.</div>
+      </div>
+    </div>
+
+    <div class="bar" style="justify-content:space-between">
+      <span id="b_msg" class="hint"></span>
+      <div class="bar">
+        <button id="b_save" class="primary">Save</button>
+        <button id="b_del" class="danger" style="display:none">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, query, orderBy, getDocs, doc, updateDoc, deleteDoc, serverTimestamp, deleteField
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+// Config
+const firebaseConfig = {
+  apiKey: "AIzaSyDZPD8nUaLXmKbosAVnzs3btqf-8KDGTas",
+  authDomain: "eft-sherpa-hub.firebaseapp.com",
+  projectId: "eft-sherpa-hub",
+  storageBucket: "eft-sherpa-hub.firebasestorage.app",
+  messagingSenderId: "831895286596",
+  appId: "1:831895286596:web:f381dc5e199c0e27bd9d11"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const st   = getStorage(app);
+
+// Auth
+const who = document.getElementById('who');
+const email = document.getElementById('email');
+const pass  = document.getElementById('pass');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn= document.getElementById('logoutBtn');
+const authMsg  = document.getElementById('authMsg');
+loginBtn.onclick = async ()=>{
+  authMsg.textContent='';
+  try{ await signInWithEmailAndPassword(auth, email.value.trim(), pass.value); }
+  catch(e){ authMsg.textContent=e.message||'Sign-in failed'; }
+};
+logoutBtn.onclick = ()=> signOut(auth);
+onAuthStateChanged(auth, u => who.textContent = u ? `Signed in: ${u.email}` : 'Signed out');
+
+// Tabs
+const tabPlayers = document.getElementById('tabPlayers');
+const tabBroadcasts = document.getElementById('tabBroadcasts');
+const playersSec = document.getElementById('playersSec');
+const castsSec   = document.getElementById('castsSec');
+function showTab(which){
+  const isPlayers = which==='players';
+  tabPlayers.setAttribute('aria-selected', String(isPlayers));
+  tabBroadcasts.setAttribute('aria-selected', String(!isPlayers));
+  playersSec.hidden = !isPlayers;
+  castsSec.hidden   =  isPlayers;
+}
+tabPlayers.onclick = ()=> showTab('players');
+tabBroadcasts.onclick = ()=> showTab('broadcasts');
+
+// Helpers
+function initials(name){
+  return (name||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') || '??';
+}
+function roleClass(label){
+  const m={'Sherpa':'sherpa','Emissary':'emissary','Helpful':'helpful','Ticket Handler':'ticket','Moderator':'moderator','Other staff (not listed)':'staff'};
+  return m[label] || 'helpful';
+}
+function parseLink(raw){
+  if(!raw) return { channel:'' };
+  let s=String(raw).trim();
+  if (/^(twitch\.tv|www\.twitch\.tv)\//i.test(s)) s='https://'+s;
+  const m = s.match(/^https?:\/\/(?:www\.)?twitch\.tv\/([^/?#]+)/i);
+  if (m) return { channel:m[1].toLowerCase() };
+  if (/^[A-Za-z0-9_]{3,25}$/.test(s)) return { channel:s.toLowerCase() };
+  return { channel:'' };
+}
+function extFromType(t){
+  t=(t||'').toLowerCase();
+  if(t.includes('jpeg')) return 'jpg';
+  if(t.includes('png')) return 'png';
+  if(t.includes('webp')) return 'webp';
+  return 'webp';
+}
+
+// Players list
+const p_grid = document.getElementById('p_grid');
+const p_prev = document.getElementById('p_prev');
+const p_next = document.getElementById('p_next');
+const p_info = document.getElementById('p_info');
+const p_refresh = document.getElementById('p_refresh');
+const p_search = document.getElementById('p_search');
+const p_role = document.getElementById('p_role');
+const p_stream = document.getElementById('p_stream');
+const p_size = document.getElementById('p_size');
+
+let P_ALL = []; // {id,data}
+let p_page = 1;
+const p_pageSize = ()=> parseInt(p_size.value,10) || 12;
+
+function p_filtered(){
+  const q = p_search.value.trim().toLowerCase();
+  const rf = p_role.value;
+  const sf = p_stream.value;
+  return P_ALL.filter(x=>{
+    const d = x.data;
+    if (d.deleted===true) return false;
+    const roleOk = rf==='all' || (d.role||'')===rf;
+    const streamOk = sf==='any' || (d.streams||'no')===sf;
+    const handle = (()=>{const raw=String(d.discord_id||'').trim(); return (raw && !raw.startsWith('@') && !raw.includes('#') && /^[\w.\-]{2,32}$/.test(raw)) ? '@'+raw : raw;})();
+    const searchOk = !q || (String(d.name||'')+' '+handle).toLowerCase().includes(q);
+    return roleOk && streamOk && searchOk;
+  });
+}
+function p_render(){
+  const items = p_filtered();
+  const total = items.length;
+  const size = p_pageSize();
+  const pages = Math.max(1, Math.ceil(total/size));
+  p_page = Math.min(p_page, pages);
+  const start = (p_page-1)*size;
+  const slice = items.slice(start, start+size);
+
+  p_grid.innerHTML='';
+  slice.forEach(({id,data})=>{
+    const row=document.createElement('div'); row.className='row';
+
+    if(data.avatar_url){
+      const img=new Image(); img.className='avatar'; img.src=data.avatar_url; img.alt='avatar'; img.loading='lazy';
+      img.onerror=()=>{ const fb=document.createElement('div'); fb.className='avatar-fb'; fb.textContent=initials(data.name); img.replaceWith(fb); };
+      row.appendChild(img);
+    }else{
+      const fb=document.createElement('div'); fb.className='avatar-fb'; fb.textContent=initials(data.name); row.appendChild(fb);
+    }
+
+    const info=document.createElement('div');
+    info.className='info';
+    const handle = (()=>{const raw=String(data.discord_id||'').trim(); return (raw && !raw.startsWith('@') && !raw.includes('#') && /^[\w.\-]{2,32}$/.test(raw)) ? '@'+raw : raw;})();
+    info.innerHTML = `<div class="name">${data.name||'—'}</div><div class="handle">${handle||''}</div>`;
+    row.appendChild(info);
+
+    const tag=document.createElement('span'); tag.className='tag '+roleClass(data.role||''); tag.textContent=data.role||'Role';
+    row.append(tag);
+
+    if ((data.role||'') === 'Moderator' && (data.mod_org||'')) {
+      const modChip = document.createElement('span');
+      modChip.className = 'tag';
+      modChip.textContent = `Mod: ${data.mod_org}`;
+      row.append(modChip);
+    }
+    if ((data.role||'') === 'Sherpa' && (data.sherpa_region||'')) {
+      const regChip = document.createElement('span');
+      regChip.className = 'tag sherpa';
+      regChip.textContent = `Region: ${data.sherpa_region}`;
+      row.append(regChip);
+    }
+ // Emissary region chip (NEW)
+    if ((data.role||'') === 'Emissary' && (data.emissary_region||'')) {
+      const erChip = document.createElement('span');
+      erChip.className = 'tag emissary';
+      erChip.textContent = `Region: ${data.emissary_region}`;
+      row.append(erChip);
+    }
+ // Staff subtype chip
+    if ((data.role||'') === 'Other staff (not listed)' && (data.other_staff_type||'')) {
+      const otherChip = document.createElement('span');
+      otherChip.className = 'tag staff';
+      otherChip.textContent = `Staff: ${data.other_staff_type}`;
+      row.append(otherChip);
+    }
+
+    const actions=document.createElement('div'); actions.className='actions';
+    const edit=document.createElement('button'); edit.textContent='Edit';
+    edit.onclick=()=> p_open({id,data});
+    actions.appendChild(edit);
+    row.appendChild(actions);
+
+    p_grid.appendChild(row);
+  });
+
+  p_info.textContent = `Page ${p_page} / ${Math.max(1,pages)} · ${total} total`;
+  p_prev.disabled = p_page<=1;
+  p_next.disabled = p_page>=pages;
+}
+p_prev.onclick = ()=>{ p_page=Math.max(1,p_page-1); p_render(); };
+p_next.onclick = ()=>{ const pages=Math.max(1,Math.ceil(p_filtered().length/p_pageSize())); p_page=Math.min(pages,p_page+1); p_render(); };
+[p_search, p_role, p_stream, p_size].forEach(el=> el.addEventListener('input', ()=>{ p_page=1; p_render(); }));
+
+async function p_load(){
+  p_grid.innerHTML='';
+  const snap = await getDocs(query(collection(db,'signups'), orderBy('createdAt','desc')));
+  P_ALL = [];
+  snap.forEach(s => P_ALL.push({ id:s.id, data:s.data() }));
+  p_render();
+}
+p_refresh.onclick = p_load;
+
+// Player modal controls
+const p_modal = document.getElementById('p_modal');
+const p_title = document.getElementById('p_title');
+const p_close = document.getElementById('p_close');
+const p_avatarPrev = document.getElementById('p_avatarPrev');
+const p_file = document.getElementById('p_file');
+const p_upload = document.getElementById('p_upload');
+const p_remove = document.getElementById('p_remove');
+const p_msg = document.getElementById('p_msg');
+const p_soft = document.getElementById('p_soft');
+const p_hard = document.getElementById('p_hard');
+const p_save = document.getElementById('p_save');
+
+const f_name = document.getElementById('f_name');
+const f_discord = document.getElementById('f_discord');
+const f_role = document.getElementById('f_role');
+const f_since = document.getElementById('f_since');
+const f_hours = document.getElementById('f_hours');
+const f_skill = document.getElementById('f_skill');
+const f_streams = document.getElementById('f_streams');
+const f_link = document.getElementById('f_link');
+const f_channel = document.getElementById('f_channel');
+const f_featured = document.getElementById('f_featured');
+const f_feature_order = document.getElementById('f_feature_order');
+const f_bio = document.getElementById('f_bio');
+const f_fav = document.getElementById('f_fav');
+
+const f_mod_wrap = document.getElementById('f_mod_wrap');
+const f_mod_org  = document.getElementById('f_mod_org');
+
+const f_region_wrap = document.getElementById('f_region_wrap');
+const f_region  = document.getElementById('f_region');
+
+// Emissary region controls (NEW)
+const f_eregion_wrap = document.getElementById('f_eregion_wrap');
+const f_eregion  = document.getElementById('f_eregion');
+
+// Other staff subtype
+const f_other_wrap = document.getElementById('f_other_wrap');
+const f_other_type = document.getElementById('f_other_type');
+
+let P_CURR = null;
+
+function toggleConditionalFields(){
+  const role = f_role.value;
+  const isMod   = role === 'Moderator';
+  const isSherp = role === 'Sherpa';
+  const isEmis  = role === 'Emissary';
+  const isOther = role === 'Other staff (not listed)';
+  f_mod_wrap.classList.toggle('hidden', !isMod);
+  f_region_wrap.classList.toggle('hidden', !isSherp);
+  f_eregion_wrap.classList.toggle('hidden', !isEmis);
+  f_other_wrap.classList.toggle('hidden', !isOther);
+}
+f_role.addEventListener('change', toggleConditionalFields);
+
+function p_open(rec){
+  P_CURR = rec;
+  const d = rec.data;
+  p_title.textContent = `Edit: ${d.name || rec.id}`;
+  p_avatarPrev.src = d.avatar_url || '';
+  f_name.value = d.name || '';
+  f_discord.value = d.discord_id || '';
+  f_role.value = d.role || 'Helpful';
+  f_since.value = (d.role_since || '').slice(0,7);
+  f_hours.value = Number(d.hours_played||0);
+  f_skill.value = d.skill_level || 'Solid / above average';
+  f_streams.value = d.streams || 'no';
+  f_link.value = d.stream_link || '';
+  f_channel.value = d.channel || '';
+  f_featured.value = String(!!d.featured);
+  f_feature_order.value = Number(d.feature_order||0);
+  f_bio.value = d.bio || '';
+  f_fav.value = d.favorite_moment || '';
+
+  f_mod_org.value = (d.mod_org || '');
+  f_region.value  = (d.sherpa_region || '');
+  f_eregion.value = (d.emissary_region || '');
+  f_other_type.value = (d.other_staff_type || '');
+
+  p_msg.textContent='';
+  p_file.value='';
+  toggleConditionalFields();
+  p_modal.style.display='flex';
+  p_modal.setAttribute('aria-hidden','false');
+}
+function p_closeModal(){
+  p_modal.style.display='none';
+  p_modal.setAttribute('aria-hidden','true');
+}
+p_close.onclick = p_closeModal;
+p_modal.addEventListener('click', (e)=>{ if(e.target===p_modal) p_closeModal(); });
+
+document.getElementById('p_parse').onclick = ()=>{
+  const out = parseLink(f_link.value.trim());
+  f_channel.value = out.channel;
+  p_msg.textContent = out.channel ? `Parsed Twitch channel: ${out.channel}` : 'Could not parse; fill manually';
+};
+
+p_upload.onclick = async ()=>{
+  const file = p_file.files?.[0];
+  if(!P_CURR) return;
+  if(!file){ p_msg.textContent='Pick a file first.'; return; }
+  if(file.size > 2*1024*1024){ p_msg.textContent='Use an image under 2MB.'; return; }
+  p_msg.textContent='Uploading…';
+  try{
+    const ext = extFromType(file.type);
+    const r = ref(st, `avatars/${P_CURR.id}.${ext}`);
+    await uploadBytes(r, file, { contentType:file.type||'image/webp', cacheControl:'public,max-age=3600' });
+    const url = await getDownloadURL(r);
+    await updateDoc(doc(db,'signups',P_CURR.id), { avatar_url:url, updatedAt:serverTimestamp(), updatedBy:auth.currentUser?.email||'admin' });
+    P_CURR.data.avatar_url = url;
+    p_avatarPrev.src = url;
+    p_msg.textContent='Avatar uploaded.';
+    const rec = P_ALL.find(x=>x.id===P_CURR.id);
+    if(rec){ rec.data.avatar_url=url; p_render(); }
+  }catch(e){ p_msg.textContent=e.message||'Upload failed.'; }
+};
+p_remove.onclick = async ()=>{
+  if(!P_CURR) return;
+  try{
+    const m = (P_CURR.data.avatar_url||'').match(/\.(jpg|jpeg|png|webp)(\?|$)/i);
+    const ext = m ? m[1] : 'webp';
+    try{ await deleteObject(ref(st, `avatars/${P_CURR.id}.${ext}`)); }catch(_){}
+    await updateDoc(doc(db,'signups',P_CURR.id), { avatar_url: deleteField(), updatedAt:serverTimestamp(), updatedBy:auth.currentUser?.email||'admin' });
+    P_CURR.data.avatar_url='';
+    p_avatarPrev.src='';
+    p_msg.textContent='Avatar removed.';
+    const rec = P_ALL.find(x=>x.id===P_CURR.id);
+    if(rec){ rec.data.avatar_url=''; p_render(); }
+  }catch(e){ p_msg.textContent=e.message||'Remove failed.'; }
+};
+
+p_save.onclick = async ()=>{
+  if(!P_CURR) return;
+  p_msg.textContent='Saving…';
+  try{
+    const hours = Number(f_hours.value);
+    if(!Number.isInteger(hours) || hours<0 || hours>50000) throw new Error('Hours must be 0–50000 (whole number).');
+    const payload = {
+      name: f_name.value.trim(),
+      discord_id: f_discord.value.trim(),
+      role: f_role.value,
+      role_since: f_since.value.slice(0,7),
+      hours_played: hours,
+      skill_level: f_skill.value,
+      streams: f_streams.value,
+      stream_link: f_link.value.trim() || undefined,
+      channel: f_channel.value.trim() || undefined,
+      featured: (document.getElementById('f_featured').value === 'true'),
+      feature_order: parseInt(f_featured.value,10) ? parseInt(f_feature_order.value,10) : (parseInt(f_feature_order.value,10) || 0),
+      bio: f_bio.value.trim(),
+      favorite_moment: f_fav.value.trim(),
+      updatedAt: serverTimestamp(),
+      updatedBy: auth.currentUser?.email || 'admin'
+    };
+
+ // Moderator affiliation
+    if (f_role.value === 'Moderator') {
+      if (f_mod_org.value) payload.mod_org = f_mod_org.value;
+      else payload.mod_org = deleteField();
+    } else {
+      payload.mod_org = deleteField();
+    }
+
+ // Sherpa region
+    if (f_role.value === 'Sherpa') {
+      if (f_region.value) payload.sherpa_region = f_region.value;
+      else payload.sherpa_region = deleteField();
+    } else {
+      payload.sherpa_region = deleteField();
+    }
+
+ // Emissary region (NEW)
+    if (f_role.value === 'Emissary') {
+      if (f_eregion.value) payload.emissary_region = f_eregion.value;
+      else payload.emissary_region = deleteField();
+    } else {
+      payload.emissary_region = deleteField();
+    }
+
+ // Other staff subtype
+    if (f_role.value === 'Other staff (not listed)') {
+      if (f_other_type.value) payload.other_staff_type = f_other_type.value;
+      else payload.other_staff_type = deleteField();
+    } else {
+      payload.other_staff_type = deleteField();
+    }
+
+    Object.keys(payload).forEach(k => (payload[k]===undefined) && delete payload[k]);
+
+    await updateDoc(doc(db,'signups',P_CURR.id), payload);
+    Object.assign(P_CURR.data, payload);
+    const rec = P_ALL.find(x=>x.id===P_CURR.id);
+    if(rec){ Object.assign(rec.data, payload); }
+    p_render();
+    p_msg.textContent='Saved.';
+  }catch(e){ p_msg.textContent=e.message||'Save failed.'; }
+};
+p_soft.onclick = async ()=>{
+  if(!P_CURR) return;
+  p_msg.textContent = P_CURR.data.deleted ? 'Restoring…' : 'Soft deleting…';
+  try{
+    const change = P_CURR.data.deleted ? { deleted:false } : { deleted:true, deletedAt: serverTimestamp() };
+    await updateDoc(doc(db,'signups',P_CURR.id), { ...change, updatedAt:serverTimestamp(), updatedBy:auth.currentUser?.email||'admin' });
+    P_CURR.data.deleted = !!change.deleted;
+    p_msg.textContent='Done.';
+    p_render();
+  }catch(e){ p_msg.textContent=e.message||'Soft delete failed.'; }
+};
+p_hard.onclick = async ()=>{
+  if(!P_CURR) return;
+  if(!confirm('Permanently delete this record? This cannot be undone.')) return;
+  p_msg.textContent='Deleting…';
+  try{
+    if (P_CURR.data.avatar_url){
+      const m = P_CURR.data.avatar_url.match(/\.(jpg|jpeg|png|webp)(\?|$)/i);
+      const ext = m ? m[1] : 'webp';
+      try{ await deleteObject(ref(st, `avatars/${P_CURR.id}.${ext}`)); }catch(_){}
+    }
+    await deleteDoc(doc(db,'signups',P_CURR.id));
+    P_ALL = P_ALL.filter(x=>x.id!==P_CURR.id);
+    p_render();
+    p_closeModal();
+  }catch(e){ p_msg.textContent=e.message||'Delete failed.'; }
+};
+
+// Broadcasts
+const b_grid = document.getElementById('b_grid');
+const b_refresh = document.getElementById('b_refresh');
+const b_new = document.getElementById('b_new');
+const b_sort = document.getElementById('b_sort');
+
+let B_ALL = []; // {id,data}
+function b_render(){
+  let items = [...B_ALL];
+  const sort = b_sort.value;
+  if (sort==='title') items.sort((a,b)=> (a.data.title||'').localeCompare(b.data.title||'')); 
+  if (sort==='live')  items.sort((a,b)=> Number(b.data.live||false) - Number(a.data.live||false));
+  b_grid.innerHTML='';
+  items.forEach(({id,data})=>{
+    const row=document.createElement('div'); row.className='brow';
+    const img=new Image(); img.className='thumb'; img.src=data.thumb_url||''; img.alt='thumb';
+    img.onerror=()=>{ img.src=''; img.style.background='#111'; };
+    const meta=document.createElement('div'); meta.className='meta';
+    meta.innerHTML = `<div class="title">${data.title||'—'}</div><div class="dim">${data.platform||'—'} · ${data.stream_link||''}</div>`;
+    const btn=document.createElement('button'); btn.textContent='Edit'; btn.onclick=()=> b_open({id,data});
+    row.append(img, meta, btn);
+    b_grid.appendChild(row);
+  });
+}
+async function b_load(){
+  b_grid.innerHTML='';
+  const q = query(collection(db,'broadcasts'), orderBy('order','asc'));
+  const snap = await getDocs(q);
+  B_ALL = [];
+  snap.forEach(s => B_ALL.push({ id:s.id, data:s.data() }));
+  b_render();
+}
+b_refresh.onclick = b_load;
+b_sort.onchange = b_render;
+
+const b_modal = document.getElementById('b_modal');
+const b_title = document.getElementById('b_title');
+const b_close = document.getElementById('b_close');
+const b_save = document.getElementById('b_save');
+const b_del  = document.getElementById('b_del');
+const b_msg  = document.getElementById('b_msg');
+
+const bf_title = document.getElementById('bf_title');
+const bf_link = document.getElementById('bf_link');
+const bf_channel = document.getElementById('bf_channel');
+const bf_order = document.getElementById('bf_order');
+const bf_live = document.getElementById('bf_live');
+const bf_desc = document.getElementById('bf_desc');
+const bf_file = document.getElementById('bf_file');
+const bf_prev = document.getElementById('bf_prev');
+const b_parse = document.getElementById('b_parse');
+const b_parseMsg = document.getElementById('b_parseMsg');
+
+let B_CURR = null;
+
+function b_open(rec){
+  B_CURR = rec || null;
+  b_title.textContent = rec ? `Edit: ${rec.data.title||rec.id}` : 'New Broadcast';
+  bf_title.value = rec?.data.title || '';
+  bf_link.value = rec?.data.stream_link || '';
+  bf_channel.value = rec?.data.channel || '';
+  bf_order.value = rec?.data.order ?? 0;
+  bf_live.value = String(!!rec?.data.live);
+  bf_desc.value = rec?.data.description || '';
+  bf_prev.src = rec?.data.thumb_url || '';
+  bf_file.value = '';
+  b_del.style.display = rec ? 'inline-block' : 'none';
+  b_msg.textContent = '';
+  b_parseMsg.textContent = '';
+  b_modal.style.display='flex';
+  b_modal.setAttribute('aria-hidden','false');
+}
+function b_closeModal(){
+  b_modal.style.display='none';
+  b_modal.setAttribute('aria-hidden','true');
+}
+b_close.onclick = b_closeModal;
+b_modal.addEventListener('click', (e)=>{ if(e.target===b_modal) b_closeModal(); });
+b_new.onclick = ()=> b_open(null);
+
+b_parse.onclick = ()=>{
+  const out = parseLink(bf_link.value.trim());
+  if (out.channel){
+    bf_channel.value = out.channel;
+    b_parseMsg.textContent = `Parsed Twitch: ${out.channel}`;
+  } else {
+    b_parseMsg.textContent = 'Could not parse; fill manually.';
+  }
+};
+
+b_save.onclick = async ()=>{
+  if (!auth.currentUser){ b_msg.textContent = 'Sign in first.'; return; }
+  b_msg.textContent = 'Saving…';
+  try{
+    const payload = {
+      title: bf_title.value.trim(),
+      platform: 'twitch',
+      stream_link: bf_link.value.trim() || undefined,
+      channel: bf_channel.value.trim() || undefined,
+      order: parseInt(bf_order.value,10) || 0,
+      live: (bf_live.value === 'true'),
+      description: bf_desc.value.trim() || undefined,
+      updatedAt: serverTimestamp(),
+      updatedBy: auth.currentUser.email
+    };
+    let id = B_CURR?.id;
+
+    if (!id){
+      const refDoc = await addDoc(collection(db,'broadcasts'), { ...payload, createdAt: serverTimestamp() });
+      id = refDoc.id;
+    } else {
+      await updateDoc(doc(db,'broadcasts',id), payload);
+    }
+
+    const file = bf_file.files?.[0];
+    if (file){
+      if (file.size > 2*1024*1024) throw new Error('Use a thumbnail under 2MB.');
+      const ext = extFromType(file.type);
+      const r = ref(st, `broadcasts/${id}.${ext}`);
+      await uploadBytes(r, file, { contentType:file.type||'image/webp', cacheControl:'public,max-age=3600' });
+      const url = await getDownloadURL(r);
+      await updateDoc(doc(db,'broadcasts',id), { thumb_url:url, updatedAt:serverTimestamp() });
+    }
+
+    await b_load();
+    b_closeModal();
+  }catch(e){ b_msg.textContent = e.message || 'Save failed.'; }
+};
+b_del.onclick = async ()=>{
+  if (!B_CURR) return;
+  if (!confirm('Delete this broadcast?')) return;
+  b_msg.textContent = 'Deleting…';
+  try{
+    if (B_CURR.data.thumb_url){
+      const m = B_CURR.data.thumb_url.match(/\.(jpg|jpeg|png|webp)(\?|$)/i);
+      const ext = m ? m[1] : 'webp';
+      try{ await deleteObject(ref(st, `broadcasts/${B_CURR.id}.${ext}`)); }catch(_){}
+    }
+    await deleteDoc(doc(db,'broadcasts',B_CURR.id));
+    await b_load();
+    b_closeModal();
+  }catch(e){ b_msg.textContent = e.message || 'Delete failed.'; }
+};
+
+// Boot
+showTab('players');
+await p_load();
+await b_load();
+</script>
+</body>
+</html>
